@@ -1,349 +1,264 @@
 import streamlit as st
-import streamlit.components.v1 as components
 
-st.set_page_config(page_title="ConstrutorPro - Calculadoras", layout="wide")
+# Configuração da Página (Deve ser sempre o primeiro comando do Streamlit)
+st.set_page_config(
+    page_title="Construtech Tubarão - Plataforma Profissional",
+    page_icon="🏗️",
+    layout="wide",
+)
 
-# HTML e JavaScript integrado com controle de créditos via localStorage (por máquina/navegador)
-html_code = """
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadoras da Construção Civil</title>
+# Estilização visual básica
+st.markdown(
+    """
     <style>
-        :root {
-            --primary-color: #2c3e50;
-            --accent-color: #27ae60;
-            --bg-color: #f8f9fa;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 10px;
-        }
-
-        header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .nav-tabs {
-            display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            padding: 10px 0;
-        }
-
-        .tab-btn {
-            background: rgba(255,255,255,0.1);
-            border: none;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.3s;
-            white-space: nowrap;
-        }
-
-        .tab-btn:hover, .tab-btn.active {
-            background: var(--accent-color);
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 20px auto;
-            padding: 20px;
-            background: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
-
-        .calculator-section {
-            display: none;
-        }
-
-        .calculator-section.active {
-            display: block;
-        }
-
-        h2 {
-            color: var(--primary-color);
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-            margin-top: 0;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-
-        button.calc-submit {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
-        }
-
-        button.calc-submit:hover {
-            opacity: 0.9;
-        }
-
-        .result-box {
-            margin-top: 20px;
-            background: #e8f8f5;
-            border-left: 4px solid var(--accent-color);
-            padding: 15px;
-            border-radius: 4px;
-        }
-
-        #paywall-screen {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .pix-box {
-            background: #f1f8e9;
-            border: 2px dashed var(--accent-color);
-            padding: 20px;
-            border-radius: 8px;
-            display: inline-block;
-            margin: 20px 0;
-            text-align: left;
-            max-width: 500px;
-            width: 100%;
-        }
-
-        .status-bar {
-            background: #eef2f7;
-            padding: 10px 20px;
-            font-size: 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 6px;
-            margin-bottom: 15px;
-        }
+    .main-header { font-size: 28px; font-weight: bold; color: #1E3A8A; }
+    .sub-header { font-size: 16px; color: #4B5563; }
+    .card { background-color: #F3F4F6; padding: 20px; border-radius: 10px; margin-bottom: 15px; }
+    .paywall-box { background-color: #FEF2F2; border: 2px dashed #EF4444; padding: 30px; border-radius: 10px; text-align: center; }
     </style>
-</head>
-<body>
+""",
+    unsafe_allow_html=True,
+)
 
-    <div class="status-bar">
-        <span id="status-creditos">Verificando acesso...</span>
+# ==========================================
+# SISTEMA DE CONTROLE DE ACESSO (PAYWALL)
+# ==========================================
+# Inicializa as chaves de controle no session_state
+if "acesso_liberado" not in st.session_state:
+    # Verificamos se já existe um registro simulado neste navegador/computador
+    st.session_state.acesso_liberado = st.session_state.get(
+        "acesso_liberado", False
+    )
+
+# Parâmetro de simulação de pagamento via URL (ex: ?liberado=true)
+params = st.query_params
+if "liberado" in params and params["liberado"] == "sim":
+    st.session_state.acesso_liberado = True
+
+# Tela de Bloqueio se o acesso não foi liberado ou pago
+if not st.session_state.acesso_liberado:
+    st.markdown(
+        '<p class="main-header" style="text-align: center;">🏗️ Construtech Tubarão</p>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<p class="sub-header" style="text-align: center;">Plataforma Profissional de Engenharia, Orçamentos e Custos</p>',
+        unsafe_allow_html=True,
+    )
+    st.markdown("---")
+
+    st.markdown(
+        """
+        <div class="paywall-box">
+            <h2>⚠️ Acesso Único Utilizado</h2>
+            <p>Identificamos que este computador já utilizou o acesso de demonstração gratuito desta plataforma.</p>
+            <p>Para continuar utilizando nossos módulos profissionais de cálculo e engenharia, por favor, realize o pagamento da licença de acesso.</p>
+            <br>
+            <h4>Chave PIX para Pagamento:</h4>
+            <p style="font-size: 18px; font-weight: bold; color: #1E3A8A;">financeiro@construtechtubarao.com.br</p>
+            <p><i>(Envie o comprovante para liberar seu acesso instantaneamente)</i></p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    col_a, col_b, col_c = st.columns([1, 2, 1])
+    with col_b:
+        st.write("")
+        # Botão de simulação para você testar a liberação após o "pagamento"
+        if st.button(
+            "Já fiz o pagamento / Simular Liberação",
+            type="primary",
+            use_container_width=True,
+        ):
+            st.session_state.acesso_liberado = True
+            st.rerun()
+
+    st.stop(
+    )  # Interrompe a execução do restante do código caso não esteja liberado
+
+
+# ==========================================
+# APLICAÇÃO PRINCIPAL (Liberada após acesso)
+# ==========================================
+
+# Cabeçalho Principal
+st.markdown(
+    '<p class="main-header">🏗️ Construtech Tubarão</p>', unsafe_allow_html=True
+)
+st.markdown(
+    '<p class="sub-header">Plataforma Profissional de Engenharia, Orçamentos e Custos</p>',
+    unsafe_allow_html=True,
+)
+st.markdown("---")
+
+# Menu Lateral para Navegação dos Módulos
+st.sidebar.title("Navegação de Módulos")
+modulo = st.sidebar.selectbox(
+    "Selecione a Ferramenta:",
+    [
+        "📊 Visão Geral e BDI",
+        "🧱 Cálculo de Materiais (Areia/Cimento)",
+        "🏗️ Estrutural e Vigas",
+        "🚰 Sistema Hidráulico",
+        "💼 Faturamento e CNPJ",
+    ],
+)
+
+# Botão na barra lateral para simular novo bloqueio (útil para testes)
+if st.sidebar.button("🔒 Bloquear / Sair deste Computador"):
+    st.session_state.acesso_liberado = False
+    st.rerun()
+
+# Controle de Sessão para Armazenar Dados do Orçamento
+if "orcamento_base" not in st.session_state:
+    st.session_state.orcamento_base = 50000.0
+if "bdi" not in st.session_state:
+    st.session_state.bdi = 25.0
+if "cliente" not in st.session_state:
+    st.session_state.cliente = "Obra Residencial Exemplo"
+
+# ==========================================
+# MÓDULO 1: VISÃO GERAL E BDI
+# ==========================================
+if modulo == "📊 Visão Geral e BDI":
+    st.subheader("Painel de Controle e Viabilidade")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.session_state.cliente = st.text_input(
+            "Nome do Projeto / Cliente:", value=st.session_state.cliente
+        )
+        st.session_state.orcamento_base = st.number_input(
+            "Valor Base Estimado (R$):",
+            min_value=0.0,
+            value=st.session_state.orcamento_base,
+            step=1000.0,
+        )
+    with col2:
+        st.session_state.bdi = st.slider(
+            "Taxa de BDI Aplicada (%):", min_value=0.0, max_value=50.0, value=25.0
+        )
+
+    if st.button("Calcular Viabilidade e Custos", type="primary"):
+        total_com_bdi = st.session_state.orcamento_base * (
+            1 + st.session_state.bdi / 100
+        )
+
+        st.markdown(
+            f"""
+        <div class="card">
+            <h3>📊 Resumo para: {st.session_state.cliente}</h3>
+            <p><b>Orçamento Base:</b> R$ {st.session_state.orcamento_base:,.2f}</p>
+            <p><b>BDI Aplicado:</b> {st.session_state.bdi}%</p>
+            <p><b>Valor Total Sugerido com BDI:</b> R$ {total_com_bdi:,.2f}</p>
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
+        st.success("Cálculo realizado com sucesso!")
+
+# ==========================================
+# MÓDULO 2: CÁLCULO DE MATERIAIS
+# ==========================================
+elif modulo == "🧱 Cálculo de Materiais (Areia/Cimento)":
+    st.subheader("Dimensionamento de Insumos Básicos")
+    st.write(
+        "Calcule a quantidade aproximada de areia, cimento e brita com base na metragem da obra."
+    )
+
+    area_construcao = st.number_input("Área da Construção (m²):", value=100.0)
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        qtd_cimento = area_construcao * 3.5
+        st.metric(label="Sacos de Cimento (50kg)", value=f"{int(qtd_cimento)} un")
+    with col2:
+        qtd_areia = area_construcao * 0.12
+        st.metric(label="Areia Média/Grossa", value=f"{qtd_areia:.2f} m³")
+    with col3:
+        qtd_brita = area_construcao * 0.10
+        st.metric(label="Brita nº 1", value=f"{qtd_brita:.2f} m³")
+
+    st.info(
+        "💡 Os índices consideram traços padrões para alvenaria e contrapiso."
+    )
+
+# ==========================================
+# MÓDULO 3: ESTRUTURAL E VIGAS
+# ==========================================
+elif modulo == "🏗️ Estrutural e Vigas":
+    st.subheader("Dimensionamento de Elementos Estruturais")
+    st.write("Estimativa de aço, concreto e formas para vigas e pilares.")
+
+    vao_livre = st.slider(
+        "Maior Vão Livre (metros):", min_value=2.0, max_value=10.0, value=4.0
+    )
+    pavimentos = st.number_input(
+        "Número de Pavimentos:", min_value=1, max_value=5, value=1
+    )
+
+    if st.button("Calcular Estimativa Estrutural"):
+        volume_concreto = vao_livre * pavimentos * 0.45
+        peso_aco = volume_concreto * 90
+
+        st.success(
+            f"Para um vão de {vao_livre}m com {pavimentos} pavimento(s):"
+        )
+        st.write(f"- **Volume Estimado de Concreto:** {volume_concreto:.2f} m³")
+        st.write(f"- **Consumo Estimado de Aço (CA-50):** {peso_aco:.2f} kg")
+
+# ==========================================
+# MÓDULO 4: SISTEMA HIDRÁULICO
+# ==========================================
+elif modulo == "🚰 Sistema Hidráulico":
+    st.subheader("Orçamento de Instalações Hidráulicas")
+    st.write("Levantamento preliminar de tubos, conexões e caixas d'água.")
+
+    pontos_agua = st.number_input(
+        "Número de Pontos de Água/Esgoto:", min_value=1, value=10
+    )
+    tem_reservatorio = st.checkbox("Incluir Caixa D'água de 1000L", value=True)
+
+    custo_tubos = pontos_agua * 45.0
+    custo_caixa = 650.0 if tem_reservatorio else 0.0
+    total_hidraulico = custo_tubos + custo_caixa
+
+    st.markdown(
+        f"""
+    <div class="card">
+        <h4>Resumo Hidráulico</h4>
+        <p><b>Tubulações e Conexões ({pontos_agua} pontos):</b> R$ {custo_tubos:,.2f}</p>
+        <p><b>Reservatório:</b> R$ {custo_caixa:,.2f}</p>
+        <p><b>Total Parcial Hidráulico:</b> R$ {total_hidraulico:,.2f}</p>
     </div>
+    """,
+        unsafe_allow_html=True,
+    )
 
-    <header>
-        <h1>ConstrutorPro</h1>
-        <div class="nav-tabs">
-            <button class="tab-btn active" onclick="switchTab('alvenaria')">Alvenaria</button>
-            <button class="tab-btn" onclick="switchTab('vigas')">Vigas & Concreto</button>
-            <button class="tab-btn" onclick="switchTab('lajes')">Lajes</button>
-            <button class="tab-btn" onclick="switchTab('hidraulica')">Hidráulica & Elétrica</button>
-            <button class="tab-btn" onclick="switchTab('orcamento')">Orçamento Geral</button>
-            <button class="tab-btn" onclick="switchTab('ativar')" style="background: #e74c3c;">Ativar Acesso Pro</button>
-        </div>
-    </header>
+# ==========================================
+# MÓDULO 5: FATURAMENTO E CNPJ
+# ==========================================
+elif modulo == "💼 Faturamento e CNPJ":
+    st.subheader("Configurações de Faturamento e Dados Comerciais")
+    st.write("Insira os dados da sua empresa para emissão do relatório.")
 
-    <div class="container" id="main-container">
+    cnpj_empresa = st.text_input(
+        "CNPJ:", value="00.000.000/0001-00", placeholder="XX.XXX.XXX/0001-XX"
+    )
+    razao_social = st.text_input(
+        "Razão Social / Nome do Engenheiro:", value="Construtech Tubarão LTDA"
+    )
+    chave_pix = st.text_input("Chave PIX para Recebimento:", value="")
 
-        <!-- TELA DE BLOQUEIO / PAYWALL -->
-        <div id="paywall-screen">
-            <h2 style="color: #c0392b;">🔒 Acesso Gratuito Expirado</h2>
-            <p>Você utilizou seus créditos de teste gratuitos neste navegador.</p>
-            <p>Para garantir uso ilimitado de todas as calculadoras por 30 dias neste computador, ative o Acesso Profissional.</p>
-            
-            <div class="pix-box">
-                <strong>Instruções de Ativação:</strong><br>
-                1. Faça um Pix no valor de <strong>R$ 20,00</strong> para a chave oficial:<br>
-                <code style="background:#fff; padding:4px; display:inline-block; margin: 5px 0;">SUA-CHAVE-PIX-AQUI</code><br><br>
-                2. Envie o comprovante no WhatsApp do suporte para liberar a sua senha de acesso instantaneamente:<br>
-                <strong>(00) 00000-0000</strong>
-            </div>
+    if st.button("Salvar Dados Fiscais"):
+        st.success(
+            f"Dados da empresa {razao_social} (CNPJ: {cnpj_empresa}) salvos com sucesso para os relatórios!"
+        )
 
-            <div style="margin-top: 15px;">
-                <label for="senha-ativacao">Possui uma senha de liberação?</label>
-                <input type="text" id="senha-ativacao" placeholder="Digite a senha enviada pelo suporte" style="max-width: 300px; display: inline-block; margin-right: 10px;">
-                <button onclick="ativarLicenca()" style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer;">Ativar Agora</button>
-            </div>
-        </div>
-
-        <!-- CONTEÚDO DAS CALCULADORAS -->
-        <div id="calculators-wrapper">
-            
-            <div id="alvenaria" class="calculator-section active">
-                <h2>Calculadora de Alvenaria</h2>
-                <div class="form-group">
-                    <label>Área da Parede (m²):</label>
-                    <input type="number" id="alv-area" value="20">
-                </div>
-                <button class="calc-submit" onclick="executarCalculo('alvenaria')">Calcular Materiais</button>
-                <div id="res-alvenaria" class="result-box" style="display:none;">
-                    • Tijolos necessários: ~320 unidades<br>
-                    • Argamassa de assentamento: ~4 sacos (25kg)
-                </div>
-            </div>
-
-            <div id="vigas" class="calculator-section">
-                <h2>Calculadora de Vigas & Concreto</h2>
-                <div class="form-group">
-                    <label>Volume Estimado (m³):</label>
-                    <input type="number" id="vig-volume" value="2">
-                </div>
-                <button class="calc-submit" onclick="executarCalculo('vigas')">Calcular Concreto</button>
-                <div id="res-vigas" class="result-box" style="display:none;">
-                    • Cimento: ~14 sacos<br>• Areia: ~1.1 m³<br>• Brita: ~1.3 m³
-                </div>
-            </div>
-
-            <div id="lajes" class="calculator-section">
-                <h2>Relatório Técnico da Laje (H8)</h2>
-                <div class="form-group">
-                    <label>Área da Laje (m²):</label>
-                    <input type="number" id="laj-area" value="20">
-                </div>
-                <button class="calc-submit" onclick="executarCalculo('lajes')">Gerar Relatório da Laje</button>
-                <div id="res-lajes" class="result-box" style="display:none;">
-                    <strong>Relatório Técnico da Laje (20.0 m² | Laje H8):</strong><br>
-                    • Vigotas Treliçadas: ~14 peças (Total: 56.0 metros lineares)<br>
-                    • Enchimento (Lajota Cerâmica): ~196 unidades<br>
-                    • Concreto (4cm): ~0.92 m³ (Cimento: 6.9 sacos)
-                </div>
-            </div>
-
-            <div id="hidraulica" class="calculator-section">
-                <h2>Hidráulica & Elétrica</h2>
-                <p>Ferramenta de dimensionamento básico de circuitos e tubulações.</p>
-                <button class="calc-submit" onclick="executarCalculo('hidraulica')">Processar Dados</button>
-                <div id="res-hidraulica" class="result-box" style="display:none;">Tubos e eletrodutos dimensionados com sucesso.</div>
-            </div>
-
-            <div id="orcamento" class="calculator-section">
-                <h2>Orçamento Geral da Obra</h2>
-                <p>Consolidação de todos os custos calculados nas abas anteriores.</p>
-                <button class="calc-submit" onclick="executarCalculo('orcamento')">Gerar Orçamento</button>
-                <div id="res-orcamento" class="result-box" style="display:none;">Orçamento consolidado gerado.</div>
-            </div>
-
-            <div id="ativar" class="calculator-section">
-                <h2>Informações de Acesso Profissional</h2>
-                <p>O acesso fica vinculado permanentemente a este navegador/computador.</p>
-            </div>
-
-        </div>
-
-    </div>
-
-    <script>
-        const SENHA_MESTRA_DEV = "PRO2026";
-
-        function checarAcesso() {
-            let statusPro = localStorage.getItem('construtor_pro_ativo');
-            let creditos = localStorage.getItem('construtor_creditos');
-
-            if (creditos === null && statusPro !== "true") {
-                localStorage.setItem('construtor_creditos', '5');
-                creditos = 5;
-            }
-
-            if (statusPro === "true") {
-                document.getElementById('status-creditos').innerText = "Status: Acesso Profissional Ativo (Ilimitado)";
-                document.getElementById('calculators-wrapper').style.display = 'block';
-                document.getElementById('paywall-screen').style.display = 'none';
-            } else {
-                let creditosRestantes = parseInt(creditos);
-                if (creditosRestantes > 0) {
-                    document.getElementById('status-creditos').innerText = `Créditos gratuitos restantes neste computador: ${creditosRestantes}`;
-                    document.getElementById('calculators-wrapper').style.display = 'block';
-                    document.getElementById('paywall-screen').style.display = 'none';
-                } else {
-                    document.getElementById('status-creditos').innerText = "Status: Créditos esgotados";
-                    document.getElementById('calculators-wrapper').style.display = 'none';
-                    document.getElementById('paywall-screen').style.display = 'block';
-                }
-            }
-        }
-
-        function executarCalculo(tipo) {
-            let statusPro = localStorage.getItem('construtor_pro_ativo');
-            
-            if (statusPro !== "true") {
-                let creditos = parseInt(localStorage.getItem('construtor_creditos') || '0');
-                if (creditos > 0) {
-                    creditos--;
-                    localStorage.setItem('construtor_creditos', creditos);
-                }
-            }
-            
-            checarAcesso();
-
-            let box = document.getElementById('res-' + tipo);
-            if(box) {
-                box.style.display = 'block';
-            }
-        }
-
-        function ativarLicenca() {
-            let digitada = document.getElementById('senha-ativacao').value.trim();
-            if (digitada === SENHA_MESTRA_DEV) {
-                localStorage.setItem('construtor_pro_ativo', 'true');
-                alert('Parabéns! Acesso Profissional ativado com sucesso neste computador.');
-                checarAcesso();
-            } else {
-                alert('Senha incorreta! Verifique a senha enviada pelo suporte após o pagamento do Pix.');
-            }
-        }
-
-        window.onload = function() {
-            checarAcesso();
-        };
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.calculator-section').forEach(sec => {
-                sec.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
-    </script>
-</body>
-</html>
-"""
-
-components.html(html_code, height=750, scrolling=True)
+# Rodapé institucional
+st.markdown("---")
+st.markdown(
+    "<p style='text-align: center; color: gray;'>Construtech Tubarão © 2026 - Todos os direitos reservados</p>",
+    unsafe_allow_html=True,
+)
