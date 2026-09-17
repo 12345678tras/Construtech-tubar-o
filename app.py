@@ -1,6 +1,6 @@
 import streamlit as st
 
-# Configuração da Página (Deve ser sempre o primeiro comando do Streamlit)
+# Configuração da Página
 st.set_page_config(
     page_title="Construtech Tubarão - Plataforma Profissional",
     page_icon="🏗️",
@@ -27,7 +27,6 @@ st.markdown(
 if "acesso_liberado" not in st.session_state:
     st.session_state.acesso_liberado = False
 
-# Tela de Bloqueio
 if not st.session_state.acesso_liberado:
     st.markdown(
         '<p class="main-header" style="text-align: center;">🏗️ Construtech Tubarão</p>',
@@ -55,7 +54,6 @@ if not st.session_state.acesso_liberado:
         unsafe_allow_html=True,
     )
 
-    # SEÇÃO EXCLUSIVA PARA VOCÊ (DONO/ADMINISTRADOR)
     with st.container():
         st.markdown(
             '<div class="admin-box">', unsafe_allow_html=True
@@ -103,19 +101,17 @@ modulo = st.sidebar.selectbox(
     [
         "📊 Visão Geral e BDI",
         "🧱 Cálculo de Alvenaria",
-        "🏠 Cálculo de Laje",
+        "🏠 Cálculo de Laje (EPS ou Cerâmica)",
         "🏗️ Estrutural e Vigas",
         "🚰 Sistema Hidráulico",
         "💼 Faturamento e CNPJ",
     ],
 )
 
-# Botão na barra lateral para bloquear novamente se precisar testar
 if st.sidebar.button("🔒 Bloquear Sistema (Testar Paywall)"):
     st.session_state.acesso_liberado = False
     st.rerun()
 
-# Controle de Sessão
 if "orcamento_base" not in st.session_state:
     st.session_state.orcamento_base = 50000.0
 if "bdi" not in st.session_state:
@@ -142,7 +138,7 @@ if modulo == "📊 Visão Geral e BDI":
         )
     with col2:
         st.session_state.bdi = st.slider(
-            "Taxa de BDI Aplicada (% - Lucro e Despesas Indiretas):",
+            "Taxa de BDI Aplicada (%):",
             min_value=0.0,
             max_value=50.0,
             value=25.0,
@@ -160,7 +156,7 @@ if modulo == "📊 Visão Geral e BDI":
             <h3>📊 Proposta Comercial para: {st.session_state.cliente}</h3>
             <p><b>Custo Direto (Insumos/Mão de Obra):</b> R$ {st.session_state.orcamento_base:,.2f}</p>
             <p><b>BDI Aplicado:</b> {st.session_state.bdi}%</p>
-            <p><b>Margem / Despesas Indiretas Estimadas:</b> R$ {lucro_estimado:,.2f}</p>
+            <p><b>Margem / Despesas Indiretas:</b> R$ {lucro_estimado:,.2f}</p>
             <hr>
             <h4><b>Preço Final de Venda Sugerido:</b> R$ {total_com_bdi:,.2f}</h4>
         </div>
@@ -170,12 +166,12 @@ if modulo == "📊 Visão Geral e BDI":
         st.success("Cálculo financeiro consolidado com sucesso!")
 
 # ==========================================
-# MÓDULO 2: CÁLCULO DE ALVENARIA (Melhorado)
+# MÓDULO 2: CÁLCULO DE ALVENARIA
 # ==========================================
 elif modulo == "🧱 Cálculo de Alvenaria":
-    st.subheader("Dimensionamento Técnico de Alvenaria (Blocos e Argamassa)")
+    st.subheader("Dimensionamento Técnico de Alvenaria (Insumos Completos)")
     st.write(
-        "Informe os dados da área de paredes para calcular com precisão os insumos."
+        "Informe a metragem de paredes para calcular tijolos, areia, cimento e ferro de amarração."
     )
 
     col_a1, col_a2 = st.columns(2)
@@ -185,71 +181,114 @@ elif modulo == "🧱 Cálculo de Alvenaria":
         )
     with col_a2:
         tipo_bloco = st.selectbox(
-            "Tipo de Bloco Cerâmico:",
+            "Tipo de Bloco:",
             [
-                "Bloco 9x19x19 cm (25 un/m²)",
-                "Bloco 14x19x19 cm (25 un/m²)",
+                "Bloco Cerâmico 9x19x19 cm (25 un/m²)",
+                "Bloco Cerâmico 14x19x19 cm (25 un/m²)",
             ],
         )
 
     if st.button("Calcular Insumos de Alvenaria", type="primary"):
-        # Parâmetros de engenharia: 25 blocos por m² + 10% de quebra/perda
-        qtd_bruta_tijolos = area_paredes * 25 * 1.10
-        # Argamassa de assentamento: ~18 kg por m² de parede
-        qtd_argamassa_kg = area_paredes * 18.0
-        sacos_cimento_alv = (
-            qtd_argamassa_kg / 250
-        ) * 50  # Estimativa de proporção em sacos de 50kg
+        qtd_tijolos = int(area_paredes * 25 * 1.10)
+        qtd_areia_m3 = area_paredes * 0.035
+        sacos_cimento = max(1, int(area_paredes * 0.35))
+        peso_ferro = area_paredes * 0.8
 
         st.markdown(
             f"""
         <div class="card">
-            <h4>📋 Relatório Técnico - Alvenaria ({area_paredes} m²)</h4>
-            <p><b>Quantidade de Blocos (com 10% de margem de perda):</b> {int(qtd_bruta_tijolos)} unidades</p>
-            <p><b>Argamassa de Assentamento Estimada:</b> {qtd_argamassa_kg:.1f} kg</p>
-            <p><b>Sacos de Cimento (50kg) para Argamassa:</b> aprox. {max(1, int(sacos_cimento_alv))} sacos</p>
+            <h4>📋 Relatório Técnico Completo - Alvenaria ({area_paredes} m²)</h4>
+            <p><b>🧱 Tijolos / Blocos (com 10% de perda):</b> {qtd_tijolos} unidades</p>
+            <p><b>🏖️ Areia Média (para argamassa):</b> {qtd_areia_m3:.2f} m³</p>
+            <p><b>📦 Cimento (Sacos de 50kg):</b> {sacos_cimento} sacos</p>
+            <p><b>⚙️ Aço / Ferro para Amarração (CA-60 / CA-50):</b> {peso_ferro:.1f} kg</p>
         </div>
         """,
             unsafe_allow_html=True,
         )
-        st.success("Cálculo de alvenaria processado com sucesso!")
+        st.success("Cálculo de alvenaria e insumos processado com sucesso!")
 
 # ==========================================
-# MÓDULO 3: CÁLCULO DE LAJE (Melhorado)
+# MÓDULO 3: CÁLCULO DE LAJE (Com EPS / Isopor ou Cerâmica + Lucro)
 # ==========================================
-elif modulo == "🏠 Cálculo de Laje":
-    st.subheader("Dimensionamento de Laje Pré-Moldada (Vigotas e Concreto)")
-    area_laje = st.number_input(
-        "Área Total da Laje (m²):", min_value=1.0, value=50.0
+elif modulo == "🏠 Cálculo de Laje (EPS ou Cerâmica)":
+    st.subheader(
+        "Dimensionamento e Orçamento de Laje Pré-Moldada (Foco em Lucratividade)"
     )
-    sobrecarga = st.selectbox(
-        "Uso da Laje / Sobrecarga:",
-        ["Residencial (150 kg/m²)", "Comercial / Laje acessível (200 kg/m²)"],
+    st.write(
+        "Escolha o tipo de laje e calcule os materiais exatos com valor de venda para o cliente."
     )
 
-    if st.button("Calcular Materiais da Laje", type="primary"):
-        # Concreto para capa de 4cm a 5cm: ~0.05 m3 a 0.08 m3 por m²
-        concreto_laje = area_laje * 0.065
-        # Vigotas pré-moldadas: proporcional ao vão (média de 1.1 m linear por m²)
-        linear_vigotas = area_laje * 1.15
-        # Aço (Tela soldada Q-61 / Q-92): aprox 3.2 kg por m²
-        aco_laje = area_laje * 3.3
+    col_l1, col_l2 = st.columns(2)
+    with col_l1:
+        area_laje = st.number_input(
+            "Área Total da Laje (m²):", min_value=1.0, value=60.0
+        )
+        tipo_laje = st.selectbox(
+            "Tipo de Enchimento da Laje:",
+            [
+                "Laje com EPS (Isopor) - Mais leve e econômica em mão de obra",
+                "Laje Tradicional com Lajota Cerâmica",
+            ],
+        )
+    with col_l2:
+        custo_mao_obra_m2 = st.number_input(
+            "Custo de Mão de Obra / Instalação por m² (R$):",
+            min_value=0.0,
+            value=35.0,
+        )
+        margem_lucro = st.slider(
+            "Sua Margem de Lucro Desejada (%):",
+            min_value=10.0,
+            max_value=60.0,
+            value=30.0,
+        )
+
+    if st.button("Calcular Laje e Orçamento de Venda", type="primary"):
+        # Cálculos técnicos padronizados de engenharia
+        concreto_laje = area_laje * 0.065  # Volume de concreto da capa (m³)
+        linear_vigotas = area_laje * 1.15  # Metragem linear de vigotas
+        aco_laje = area_laje * 3.3  # Tela soldada estrutural (kg)
+
+        if "EPS" in tipo_laje:
+            # EPS: cerca de 2.5 placas por m² + custo médio estimado de material por m² (vigotas + EPS + concreto + aço)
+            qtd_enchimento = int(area_laje * 2.5)
+            nome_enchimento = "Placas de EPS (Isopor)"
+            custo_material_m2 = 65.0  # Custo médio de insumos por m²
+        else:
+            # Lajota cerâmica: cerca de 8 a 9 unidades por m²
+            qtd_enchimento = int(area_laje * 8.5)
+            nome_enchimento = "Lajotas Cerâmicas"
+            custo_material_m2 = 58.0  # Custo médio de insumos por m²
+
+        custo_total_materiais = area_laje * custo_material_m2
+        custo_total_mao_obra = area_laje * custo_mao_obra_m2
+        custo_direto_laje = custo_total_materiais + custo_total_mao_obra
+
+        # Preço de venda com base na margem escolhida para garantir o lucro
+        preco_venda_laje = custo_direto_laje * (1 + margem_lucro / 100)
+        lucro_bruto = preco_venda_laje - custo_direto_laje
 
         st.markdown(
             f"""
         <div class="card">
-            <h4>🏠 Relatório Técnico - Laje ({area_laje} m²)</h4>
-            <p><b>Volume de Concreto para Capa (fck >= 25 MPa):</b> {concreto_laje:.2f} m³</p>
+            <h4>🏠 Relatório Técnico - Laje ({tipo_laje}) | {area_laje} m²</h4>
             <p><b>Metragem Linear de Vigotas Pré-moldadas:</b> {linear_vigotas:.1f} metros</p>
-            <p><b>Aço / Tela Soldada Estrutural:</b> {aco_laje:.1f} kg</p>
+            <p><b>Enchimento ({nome_enchimento}):</b> {qtd_enchimento} unidades</p>
+            <p><b>Volume de Concreto para Capa:</b> {concreto_laje:.2f} m³</p>
+            <p><b>Aço / Tela Soldada:</b> {aco_laje:.1f} kg</p>
+            <hr>
+            <p><b>Custo Direto Total (Materiais + Mão de Obra):</b> R$ {custo_direto_laje:,.2f}</p>
+            <p><b>Seu Lucro Estimado ({margem_lucro}%):</b> R$ {lucro_bruto:,.2f}</p>
+            <h3 style="color: #1E3A8A;">💰 Preço Sugerido para Fechar com o Cliente: R$ {preco_venda_laje:,.2f}</h3>
         </div>
         """,
             unsafe_allow_html=True,
         )
-        st.success("Cálculo de laje processado com sucesso!")
+        st.success("Orçamento e dimensionamento da laje calculados com sucesso!")
 
 # ==========================================
-# MÓDULO 4: ESTRUTURAL E VIGAS (Melhorado)
+# MÓDULO 4: ESTRUTURAL E VIGAS
 # ==========================================
 elif modulo == "🏗️ Estrutural e Vigas":
     st.subheader("Dimensionamento Estimado de Concreto e Aço Estrutural")
@@ -263,24 +302,19 @@ elif modulo == "🏗️ Estrutural e Vigas":
         )
     with col_e2:
         pavimentos = st.number_input(
-            "Número de Pavimentos da Estrutura:",
-            min_value=1,
-            max_value=5,
-            value=1,
+            "Número de Pavimentos:", min_value=1, max_value=5, value=1
         )
 
     if st.button("Calcular Estrutura Completa", type="primary"):
-        # Base de cálculo estrutural ajustada por vão e pavimentos
         volume_concreto = vao_livre * pavimentos * 0.42
-        peso_aco = volume_concreto * 95.0  # Consumo médio de aço CA-50 por m³
+        peso_aco = volume_concreto * 95.0
 
         st.markdown(
             f"""
         <div class="card">
-            <h4>🏗️ Relatório Estrutural (Vigas, Pilares e Fundações)</h4>
-            <p><b>Vão Referência:</b> {vao_livre} metros | <b>Pavimentos:</b> {pavimentos}</p>
-            <p><b>Volume Total Estimado de Concreto:</b> {volume_concreto:.2f} m³</p>
-            <p><b>Consumo Estimado de Aço (CA-50/CA-60):</b> {peso_aco:.2f} kg</p>
+            <h4>🏗️ Relatório Estrutural</h4>
+            <p><b>Volume Total de Concreto:</b> {volume_concreto:.2f} m³</p>
+            <p><b>Consumo de Aço (CA-50/CA-60):</b> {peso_aco:.2f} kg</p>
         </div>
         """,
             unsafe_allow_html=True,
@@ -288,46 +322,27 @@ elif modulo == "🏗️ Estrutural e Vigas":
         st.success("Estimativa estrutural calculada com sucesso!")
 
 # ==========================================
-# MÓDULO 5: SISTEMA HIDRÁULICO (Melhorado)
+# MÓDULO 5: SISTEMA HIDRÁULICO
 # ==========================================
 elif modulo == "🚰 Sistema Hidráulico":
-    st.subheader("Orçamento Técnico de Instalações Hidráulicas (Água e Esgoto)")
-    col_h1, col_h2 = st.columns(2)
-    with col_h1:
-        pontos_agua = st.number_input(
-            "Total de Pontos (Água Fria, Quente e Esgoto):",
-            min_value=1,
-            value=12,
-        )
-    with col_h2:
-        capacidade_caixa = st.selectbox(
-            "Capacidade do Reservatório (Caixa D'água):",
-            ["1.000 Litros", "1.500 Litros", "2.000 Litros", "Sem Reservatório"],
-        )
+    st.subheader("Orçamento Técnico de Instalações Hidráulicas")
+    pontos_agua = st.number_input(
+        "Total de Pontos (Água e Esgoto):", min_value=1, value=12
+    )
 
     if st.button("Calcular Orçamento Hidráulico", type="primary"):
-        # Custos médios de mercado por ponto hidráulico (tubos PVC, conexões, registros, joelhos)
         custo_materiais_hid = pontos_agua * 55.0
-
-        if "1.000" in capacidade_caixa:
-            custo_caixa = 680.0
-        elif "1.500" in capacidade_caixa:
-            custo_caixa = 980.0
-        elif "2.000" in capacidade_caixa:
-            custo_caixa = 1350.0
-        else:
-            custo_caixa = 0.0
-
+        custo_caixa = 680.0
         total_hidraulico = custo_materiais_hid + custo_caixa
 
         st.markdown(
             f"""
         <div class="card">
-            <h4>🚰 Resumo do Orçamento Hidráulico</h4>
-            <p><b>Tubulações, Conexões e Registros ({pontos_agua} pontos):</b> R$ {custo_materiais_hid:,.2f}</p>
-            <p><b>Reservatório ({capacidade_caixa}):</b> R$ {custo_caixa:,.2f}</p>
+            <h4>🚰 Resumo Hidráulico</h4>
+            <p><b>Tubulações e Conexões ({pontos_agua} pontos):</b> R$ {custo_materiais_hid:,.2f}</p>
+            <p><b>Reservatório (1.000L):</b> R$ {custo_caixa:,.2f}</p>
             <hr>
-            <h4><b>Custo Parcial Hidráulico Estimado:</b> R$ {total_hidraulico:,.2f}</h4>
+            <h4><b>Total Parcial Hidráulico:</b> R$ {total_hidraulico:,.2f}</h4>
         </div>
         """,
             unsafe_allow_html=True,
@@ -345,16 +360,13 @@ elif modulo == "💼 Faturamento e CNPJ":
         placeholder="XX.XXX.XXX/0001-XX",
     )
     razao_social = st.text_input(
-        "Razão Social / Nome do Responsável Técnico:",
+        "Razão Social / Responsável Técnico:",
         value="Construtech Tubarão LTDA",
-    )
-    chave_pix = st.text_input(
-        "Chave Pix Comercial:", value="contato@construtechtubarao.com.br"
     )
 
     if st.button("Salvar Dados Fiscais", type="primary"):
         st.success(
-            f"Dados da empresa {razao_social} (CNPJ: {cnpj_empresa}) salvos e vinculados aos relatórios!"
+            f"Dados da empresa {razao_social} (CNPJ: {cnpj_empresa}) salvos com sucesso!"
         )
 
 # Rodapé institucional
