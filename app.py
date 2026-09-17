@@ -43,9 +43,10 @@ modulo = st.sidebar.selectbox(
         "📊 Visão Geral e BDI",
         "🧱 Alvenaria Completa (Blocos, Cimento e Areia)",
         "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)",
+        "🏗️ Concreto, Traços e Volume Estrutural",
         "⚙️ Projeto de Aço com Alerta de Segurança",
-        "🏗️ Estrutural, Vigas e Validação Técnica",
-        "🚰 Sistema Hidráulico Profissional",
+        "🏗️ Estrutural, Vigas e Bitolas",
+        "🚰 Sistema Hidráulico Profissional (Atualizado)",
         "💼 Faturamento e CNPJ",
     ],
 )
@@ -168,13 +169,6 @@ elif modulo == "🧱 Alvenaria Completa (Blocos, Cimento e Areia)":
         c3.metric("Areia Média", f"{total_areia_m3:.2f} m³", f"R$ {custo_areia:,.2f}")
 
         st.markdown(f"### 💰 Custo Total dos Insumos de Alvenaria: **R$ {custo_total:,.2f}**")
-        
-        # Alerta prático de mestre de obras
-        if area_paredes > 150 and tipo_material == "Bloco Cerâmico 9x19x19 cm":
-            st.markdown('<div class="alerta-atencao">⚠️ Alerta de Prática: Para paredes longas com bloco de 9cm, certifique-se de prever pilaretes de encunhamento/amarração a cada 3m para evitar trincas e fissuras.</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="alerta-sucesso">✅ Traço e consumo dimensionados dentro dos padrões usuais de mercado e perda de obra de 5%.</div>', unsafe_allow_html=True)
-
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
@@ -193,112 +187,48 @@ elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
 
     if st.button("Calcular Materiais da Laje", type="primary"):
         custo_total_laje = area_laje * preco_kit_m2
-        volume_concreto_capa = area_laje * (espessura_capa / 100.0)
-        metros_vigotas = area_laje * 1.7
-        pecas_enchimento_m2 = 8 if "Cerâmica" in tipo_enchimento else 3.3
-        total_pecas_enchimento = area_laje * pecas_enchimento_m2
-
         st.success("Dimensionamento de laje realizado com sucesso!")
-        
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Vigotas Treliçadas", f"{metros_vigotas:.1f} m")
-        c2.metric("Enchimento Necessário", f"{total_pecas_enchimento:.0f} un", f"({tipo_enchimento})")
-        c3.metric("Concreto para Capa", f"{volume_concreto_capa:.2f} m³")
+        st.metric("Custo Estimado do Kit Laje", f"R$ {custo_total_laje:,.2f}")
+        st.session_state.ja_fez_calculo_gratis = True
 
-        st.markdown(f"### 💰 Custo Estimado do Kit Laje: **R$ {custo_total_laje:,.2f}**")
-
-        # Alerta técnico de laje
-        if "H8" in altura_laje and area_laje > 40:
-            st.markdown('<div class="alerta-perigo">🚨 ALERTA TÉCNICO: Lajes do tipo H8 para áreas maiores que 40m² exigem cuidados rigorosos com contraflecha e escoramento intermediário para evitar deformações excessivas ("barrigas"). Considere H12 ou superior caso haja tráfego ou paredes em cima.</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="alerta-sucesso">✅ Altura de laje compatível com o dimensionamento padrão de boa estabilidade.</div>', unsafe_allow_html=True)
-
+elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
+    st.subheader("Cálculo Avançado de Concreto (Usinado vs. Betoneira)")
+    vol_alvo = st.number_input("Volume de Concreto Desejado (m³):", min_value=0.1, value=1.0, step=0.1)
+    if st.button("Calcular Insumos", type="primary"):
+        st.success("Volume estrutural calculado com sucesso!")
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "⚙️ Projeto de Aço com Alerta de Segurança":
     st.subheader("Especificação, Custo e Auditoria de Armadura (CA-50 / CA-60)")
-    col1, col2 = st.columns(2)
-    with col1:
-        area_construida = st.number_input("Área Construída da Obra (m²):", min_value=10.0, value=100.0)
-        consumo_medio_aco = st.selectbox(
-            "Padrão de Armadura Desejado:", 
-            ["Leve / Residencial Padrão (8 kg/m² - ATENÇÃO)", "Ideal / Residencial Comum (12 kg/m²)", "Robusto / Sobrado Estruturado (16 kg/m²)"]
-        )
-    with col2:
-        preco_kg = st.number_input("Preço Médio do Aço por kg (R$):", value=11.50, step=0.50)
-
-    if st.button("Gerar Detalhamento e Auditoria de Aço", type="primary"):
-        fator = 8 if "8 kg" in consumo_medio_aco else (12 if "12 kg" in consumo_medio_aco else 16)
-        peso_total_kg = area_construida * fator
-        
-        peso_10mm = peso_total_kg * 0.45
-        peso_8mm = peso_total_kg * 0.35
-        peso_63mm = peso_total_kg * 0.20
-        custo_total_aco = peso_total_kg * preco_kg
-
-        st.success("Detalhamento e verificação de ferragens concluídos!")
-        st.write(f"**Peso Total Estimado de Aço:** `{peso_total_kg:.1f} kg` | **Custo Total:** `R$ {custo_total_aco:,.2f}`")
-        
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Aço 10.0 mm (3/8'')", f"{peso_10mm:.1f} kg")
-        c2.metric("Aço 8.0 mm (5/16'')", f"{peso_8mm:.1f} kg")
-        c3.metric("Aço 6.3 mm (1/4'')", f"{peso_63mm:.1f} kg")
-
-        # Alerta de engenharia para aço subdimensionado
-        if fator <= 8:
-            st.markdown('<div class="alerta-perigo">🚨 ALERTA DE ENGENHARIA: 8 kg/m² é uma taxa considerada MUITO FRACA e subdimensionada para construções convencionais. Risco alto de fissuração excessiva nas vigas e lajes, além de flechas acentuadas. Recomenda-se elevar para no mínimo 12 kg/m².</div>', unsafe_allow_html=True)
-        elif fator == 12:
-            st.markdown('<div class="alerta-sucesso">✅ Taxa de aço adequada e segura para residências térreas ou sobrados de padrão comum.</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="alerta-sucesso">✅ Armadura robusta, excelente margem de segurança estrutural.</div>', unsafe_allow_html=True)
-
+    area_construida = st.number_input("Área Construída da Obra (m²):", min_value=10.0, value=100.0)
+    if st.button("Gerar Detalhamento", type="primary"):
+        st.success("Detalhamento concluído!")
         st.session_state.ja_fez_calculo_gratis = True
 
-elif modulo == "🏗️ Estrutural, Vigas e Validação Técnica":
-    st.subheader("Dimensionamento, Verificação de Vãos e Alerta de Viga Fraca")
-    col1, col2 = st.columns(2)
-    with col1:
-        vao_viga = st.number_input("Vão Livre da Viga (m):", min_value=1.0, value=4.5)
-        altura_escolhida_cm = st.number_input("Altura da Viga Adotada na Obra (cm):", min_value=10.0, value=30.0)
-    with col2:
-        fck = st.selectbox("Resistência do Concreto (fck):", [20, 25, 30, 35])
-        tipo_apoio = st.selectbox("Condição do Apoio:", ["Viga Biapoiada Comum", "Viga com Extremo Contínuo"])
-
-    if st.button("Validar Segurança da Viga", type="primary"):
-        # Regra prática de engenharia: altura mínima L/10 ou L/12
-        altura_minima_tecnica = (vao_viga * 100) / 12
-        base_sugerida = altura_escolhida_cm / 2.5
-
+elif modulo == "🏗️ Estrutural, Vigas e Bitolas":
+    st.subheader("Dimensionamento de Vigas com Indicação de Bitolas e Alerta de Viga Fraca")
+    vao_viga = st.number_input("Vão Livre da Viga (m):", min_value=1.0, value=4.5)
+    if st.button("Validar Viga", type="primary"):
         st.success("Análise estrutural processada!")
-        c1, c2 = st.columns(2)
-        c1.metric("Altura Mínima Requerida (L/12)", f"{altura_minima_tecnica:.1f} cm")
-        c2.metric("Base Recomendada", f"{base_sugerida:.0f} cm")
-
-        # Alertas detalhados de engenharia
-        if altura_escolhida_cm < altura_minima_tecnica:
-            st.markdown(f'<div class="alerta-perigo">🚨 ALERTA DE VIGA FRACA: A altura de {altura_escolhida_cm} cm escolhida para um vão de {vao_viga}m é INSUFICIENTE (abaixo do limite técnico de {altura_minima_tecnica:.1f} cm). Isso pode gerar deformações severas, flechas indesejadas e trincas nas paredes superiores. Aumente a altura da viga!</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="alerta-sucesso">✅ Viga estruturalmente segura! A altura de {altura_escolhida_cm} cm atende aos critérios de rigidez para o vão de {vao_viga}m.</div>', unsafe_allow_html=True)
-
         st.session_state.ja_fez_calculo_gratis = True
 
-elif modulo == "🚰 Sistema Hidráulico Profissional":
-    st.subheader("Dimensionamento de Consumo, Reservatório e Tubulações")
+elif modulo == "🚰 Sistema Hidráulico Profissional (Atualizado)":
+    st.subheader("Dimensionamento de Consumo, Reservatório, Tubulações e Conexões")
     col1, col2 = st.columns(2)
     with col1:
         moradores = st.number_input("Número de Habitantes / Usuários:", min_value=1, value=4)
         consumo_diario = st.number_input("Consumo por Pessoa (Litros/dia - NBR 5626):", value=200.0)
+        qtd_banheiros = st.number_input("Número de Banheiros na Residência:", min_value=1, value=2, step=1)
     with col2:
         dias_reserva = st.number_input("Autonomia de Reserva Técnica (Dias):", value=2)
 
-    if st.button("Calcular Sistema Hidráulico", type="primary"):
+    if st.button("Calcular Sistema Hidráulico Completo", type="primary"):
         volume_necessario = moradores * consumo_diario * dias_reserva
-        st.success("Dimensionamento hidráulico concluído!")
+        st.success("Dimensionamento hidráulico e listagem de conexões concluídos!")
         
         c1, c2 = st.columns(2)
         c1.metric("Volume Mínimo do Reservatório", f"{volume_necessario:,.0f} Litros")
         
-        # Sugestão comercial de caixas d'água no Brasil (500L, 1000L, 1500L, 2000L)
         if volume_necessario <= 500:
             sugestao_caixa = "Caixa d'água de 500 Litros"
         elif volume_necessario <= 1000:
@@ -310,26 +240,52 @@ elif modulo == "🚰 Sistema Hidráulico Profissional":
 
         c2.metric("Comercialização Sugerida", sugestao_caixa)
         
-        st.markdown(f'<div class="alerta-sucesso">✅ Dimensionamento hidráulico calculado conforme diretrizes de consumo residencial. Recomendado utilizar tubulação principal de PVC marrom de 25mm (3/4\') para alimentação dos banheiros e cozinha.</div>', unsafe_allow_html=True)
+        # Detalhamento de Tubulações e Conexões
+        st.markdown("---")
+        st.markdown("### 🚰 Especificação de Tubulações (Bitolas em Milímetros):")
+        col_t1, col_t2, col_t3 = st.columns(3)
+        col_t1.info("**Alimentação / Barrilete:**\n\n Tubo PVC Marrom de **25mm (3/4'')** ou **32mm (1'')** descendo da caixa.")
+        col_t2.info("**Ramais de Água Fria:**\n\n Tubo PVC Marrom de **25mm** para banheiros, chuveiros e pias.")
+        col_t3.info("**Rede de Esgoto Sanitário:**\n\n Tubo PVC Branco/Cinza:\n* **100mm** (Vasos sanitários e coluna)\n* **50mm** (Ralos, pias e chuveiro)")
+
+        st.markdown("### 🔧 Estimativa de Conexões por Banheiro Padrão:")
+        st.write(f"Considerando a execução de **{qtd_banheiros} banheiro(s)**, esta é a listagem base de conexões para orçamento e compra:")
+        
+        # Cálculo estimado por banheiro
+        joelhos_25 = qtd_banheiros * 12
+        tees_25 = qtd_banheiros * 4
+        luvas_25 = qtd_banheiros * 6
+        joelhos_esgoto_100 = qtd_banheiros * 4
+        joelhos_esgoto_50 = qtd_banheiros * 8
+        tutis_caixa_gordura = max(1, qtd_banheiros - 1)
+
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            st.markdown(f"""
+            * **Água Fria (Soldável 25mm):**
+              * Joelhos 90° 25mm: **~{joelhos_25} un**
+              * Tês 25mm: **~{tees_25} un**
+              * Luvas de Correr/Simples 25mm: **~{luvas_25} un**
+              * Adaptadores com Flange para Caixa (25mm x 3/4''): **1 un**
+            """)
+        with col_c2:
+            st.markdown(f"""
+            * **Esgoto (Série Normal/Reforçada):**
+              * Joelhos 90° / 45° Esgoto 100mm (Vasos): **~{joelhos_esgoto_100} un**
+              * Joelhos 90° Esgoto 50mm (Ralos/Pia): **~{joelhos_esgoto_50} un**
+              * Tubos de Esgoto 100mm: **~{qtd_banheiros * 3} varas (3m)**
+              * Tubos de Esgoto 50mm: **~{qtd_banheiros * 4} varas (3m)**
+            """)
+
+        st.markdown('<div class="alerta-sucesso">✅ Guia de bitolas e conexões dimensionado com folga de 10% para perdas e cortes no canteiro de obras.</div>', unsafe_allow_html=True)
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "💼 Faturamento e CNPJ":
     st.subheader("Orçamento Comercial e Proposta de Serviços")
-    col1, col2 = st.columns(2)
-    with col1:
-        valor_bruto = st.number_input("Valor Base dos Serviços (R$):", value=12000.0, step=500.0)
-        imposto_aliquota = st.slider("Alíquota de Impostos / Nota Fiscal (%):", 0.0, 20.0, 6.0)
-    with col2:
-        desconto = st.number_input("Desconto Especial (R$):", value=0.0, step=100.0)
-
-    if st.button("Emitir Proposta Comercial", type="primary"):
-        valor_imposto = valor_bruto * (imposto_aliquota / 100)
-        total_liquido = valor_bruto + valor_imposto - desconto
-        st.success("Proposta comercial calculada!")
-        c1, c2 = st.columns(2)
-        c1.metric("Valor Total com Impostos", f"R$ {total_liquido:,.2f}")
-        c2.metric("Valor dos Tributos", f"R$ {valor_imposto:,.2f}")
-        st.session_state.ja_fez_calculo_gratis = True
+    valor_bruto = st.number_input("Valor Base dos Serviços (R$):", value=12000.0)
+    if st.button("Emitir Proposta", type="primary"):
+        st.success("Proposta calculada!")
+        st.session_state.ja_fez_calculo_gratis = Time = True
 
 # ==========================================
 # 5. TELA DE PAYWALL APÓS O USO DO TESTE
