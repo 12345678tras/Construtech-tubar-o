@@ -47,11 +47,13 @@ modulo = st.sidebar.selectbox(
     ],
 )
 
-# Painel do Administrador na barra lateral
+# Painel do Administrador na barra lateral (SENHA OCULTA COM TYPE PASSWORD)
 st.sidebar.markdown("---")
 st.sidebar.write("🔑 **Painel do Administrador**")
 senha_sidebar = st.sidebar.text_input(
-    "Chave Mestra:", type="password", placeholder="construtech123"
+    "Chave Mestra:",
+    type="password",
+    placeholder="Digite a chave mestra",
 )
 if st.sidebar.button("Desbloquear Sistema Inteiro"):
     if senha_sidebar == "construtech123":
@@ -75,7 +77,6 @@ def verificar_acesso_modulo(nome_modulo):
     if nome_modulo not in st.session_state.contador_calculos:
         st.session_state.contador_calculos[nome_modulo] = 0
 
-    # Se o contador for maior ou igual a 1, significa que já usou o grátis e tentou o segundo
     if st.session_state.contador_calculos[nome_modulo] > 1:
         return False
 
@@ -119,7 +120,7 @@ if not liberado_atual:
             senha_admin = st.text_input(
                 "Senha de Liberação:",
                 type="password",
-                placeholder="Digite a senha (construtech123)",
+                placeholder="Digite a senha",
             )
             botao_enviar = st.form_submit_button("Liberar Licença Definitiva")
 
