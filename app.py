@@ -1,13 +1,19 @@
 import streamlit as st
+from streamlit_cookies_controller import CookieController
 
-# Configuração da Página
+# ==========================================
+# 1. CONFIGURAÇÃO DA PÁGINA
+# ==========================================
 st.set_page_config(
     page_title="Construtech Tubarão - Plataforma Profissional",
     page_icon="🏗️",
     layout="wide",
 )
 
-# Estilização visual básica
+# Inicializa o controlador de cookies do navegador
+controller = CookieController()
+
+# Estilização visual limpa e profissional
 st.markdown(
     """
     <style>
@@ -23,14 +29,14 @@ st.markdown(
 )
 
 # ==========================================
-# CONTROLE DE LICENÇA E SESSÃO
+# 2. CONTROLE DE SESSÃO E COOKIES (TRAVA POR MÁQUINA)
 # ==========================================
 if "licenca_global_liberada" not in st.session_state:
-    st.session_state.licenca_global_liberada = False
-
-# Dicionário para controlar quantas vezes o botão de cálculo foi apertado em cada módulo
-if "contador_calculos" not in st.session_state:
-    st.session_state.contador_calculos = {}
+    cookie_liberado = controller.get("construtech_liberado")
+    if cookie_liberado == "true":
+        st.session_state.licenca_global_liberada = True
+    else:
+        st.session_state.licenca_global_liberada = False
 
 # Menu Lateral de Navegação
 st.sidebar.title("Navegação de Módulos")
@@ -47,44 +53,42 @@ modulo = st.sidebar.selectbox(
     ],
 )
 
-# Painel do Administrador na barra lateral (SENHA OCULTA COM TYPE PASSWORD)
+# Painel do Administrador na barra lateral
 st.sidebar.markdown("---")
 st.sidebar.write("🔑 **Painel do Administrador**")
 senha_sidebar = st.sidebar.text_input(
-    "Chave Mestra:",
-    type="password",
-    placeholder="Digite a chave mestra",
+    "Chave Mestra:", type="password", placeholder="Digite a chave"
 )
 if st.sidebar.button("Desbloquear Sistema Inteiro"):
     if senha_sidebar == "construtech123":
         st.session_state.licenca_global_liberada = True
-        st.sidebar.success("Licença definitiva ativada!")
+        controller.set("construtech_liberado", "true", max_age=31536000)
+        st.sidebar.success("Licença definitiva ativada e salva na máquina!")
         st.rerun()
     else:
         st.sidebar.error("Senha incorreta!")
 
-if st.sidebar.button("🔒 Bloquear / Resetar Testes"):
+if st.sidebar.button("🔒 Bloquear / Resetar Testes (Zerar Cookie)"):
     st.session_state.licenca_global_liberada = False
-    st.session_state.contador_calculos = {}
+    controller.remove("construtech_liberado")
+    controller.remove("ja_fez_calculo_gratis")
     st.rerun()
 
 
-# Função para verificar se o usuário já ultrapassou o limite gratuito (1 cálculo livre, bloqueia no 2º)
-def verificar_acesso_modulo(nome_modulo):
+# Função para verificar se o usuário já gastou o cálculo gratuito usando Cookies
+def verificar_acesso_global():
     if st.session_state.licenca_global_liberada:
         return True
 
-    if nome_modulo not in st.session_state.contador_calculos:
-        st.session_state.contador_calculos[nome_modulo] = 0
-
-    if st.session_state.contador_calculos[nome_modulo] > 1:
+    ja_usou = controller.get("ja_fez_calculo_gratis")
+    if ja_usou == "true":
         return False
 
     return True
 
 
 # ==========================================
-# APLICAÇÃO PRINCIPAL
+# 3. CABEÇALHO DA APLICAÇÃO
 # ==========================================
 st.markdown(
     '<p class="main-header">🏗️ Construtech Tubarão</p>', unsafe_allow_html=True
@@ -94,53 +98,73 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Verifica se o módulo atual deve exibir o paywall
-liberado_atual = verificar_acesso_modulo(modulo)
+# ==========================================
+# 4. SISTEMA DE PAYWALL E INFINITEPAY
+# ==========================================
+liberado_atual = verificar_acesso_global()
 
 if not liberado_atual:
     st.markdown("---")
     st.markdown(
-        f"""
+        """
         <div class="paywall-box">
-            <h2>⚠️ Seu Acesso Gratuito neste Módulo ({modulo}) Expirou!</h2>
-            <p>Você já realizou o seu cálculo gratuito de demonstração nesta ferramenta.</p>
-            <p>Para continuar realizando cálculos ilimitados, digite a senha de liberação abaixo:</p>
+            <h2>⚠️ Seu Período de Testes Gratuitos Expirou!</h2>
+            <p>Você já utilizou a sua demonstração gratuita neste computador.</p>
+            <p>Para desbloquear o acesso completo e ilimitado, faça o pagamento via <b>InfinitePay</b> (R$ 20,00).</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    with st.container():
-        st.markdown(
-            '<div class="admin-box">', unsafe_allow_html=True
-        )
-        st.write("🔑 **Área do Administrador / Liberação**")
+    col_pay1, col_pay2 = st.columns(2)
 
+    with col_pay1:
+        st.markdown("### 🚀 Pagamento Instantâneo (InfinitePay)")
+        email_cliente = st.text_input(
+            "Seu e-mail:", placeholder="seu@email.com"
+        )
+
+        if st.button("Ir para o Pagamento (R$ 20,00)"):
+            if email_cliente:
+                # SEU LINK REAL DA INFINITEPAY INSERIDO AQUI:
+                link_infinitepay = "https://link.infinitepay.io/cristiane-da-260/VC1DLUMtUg-Aklf8ElJpW-20,00"
+
+                st.success("Redirecionando para o ambiente seguro de pagamento!")
+                st.markdown(
+                    f"👉 **[Clique aqui para abrir o pagamento da"
+                    f" InfinitePay]({link_infinitepay})**"
+                )
+                st.info(
+                    "Após efetuar o pagamento, entre em contato ou utilize sua"
+                    " senha de liberação."
+                )
+            else:
+                st.warning("Por favor, preencha o seu e-mail.")
+
+    with col_pay2:
+        st.markdown("### 🔑 Liberação Manual (Admin)")
         with st.form(key="form_admin_paywall"):
             senha_admin = st.text_input(
-                "Senha de Liberação:",
+                "Chave Mestra:",
                 type="password",
                 placeholder="Digite a senha",
             )
-            botao_enviar = st.form_submit_button("Liberar Licença Definitiva")
-
+            botao_enviar = st.form_submit_button("Liberar com Chave")
             if botao_enviar:
                 if senha_admin == "construtech123":
                     st.session_state.licenca_global_liberada = True
-                    st.success(
-                        "Licença ativada com sucesso! Carregando sistema..."
-                    )
+                    controller.set("construtech_liberado", "true", max_age=31536000)
+                    st.success("Licença ativada com sucesso!")
                     st.rerun()
                 else:
                     st.error("Senha incorreta!")
 
-        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# Aviso amigável na tela
+# Aviso amigável do teste grátis ativo
 if not st.session_state.licenca_global_liberada:
     st.markdown(
-        f'<div class="alerta-teste">⭐ O primeiro cálculo no módulo <b>{modulo}</b> é totalmente gratuito para você testar e ver o resultado!</div>',
+        f'<div class="alerta-teste">⭐ Você está usando a sua <b>única demonstração gratuita</b> liberada para este computador. Aproveite para testar!</div>',
         unsafe_allow_html=True,
     )
 
@@ -154,8 +178,9 @@ if "cliente" not in st.session_state:
     st.session_state.cliente = "Obra Residencial Exemplo"
 
 # ==========================================
-# MÓDULO 1: VISÃO GERAL E BDI
+# 5. MÓDULOS DO SISTEMA
 # ==========================================
+
 if modulo == "📊 Visão Geral e BDI":
     st.subheader("Painel de Controle e Viabilidade Comercial")
     col1, col2 = st.columns(2)
@@ -171,355 +196,39 @@ if modulo == "📊 Visão Geral e BDI":
         )
     with col2:
         st.session_state.bdi = st.slider(
-            "Taxa de BDI Aplicada (%):",
-            min_value=0.0,
-            max_value=50.0,
-            value=25.0,
+            "Taxa de BDI Aplicada (%):", 0.0, 50.0, 25.0
         )
 
     if st.button("Calcular Viabilidade e Venda", type="primary"):
-        if modulo not in st.session_state.contador_calculos:
-            st.session_state.contador_calculos[modulo] = 1
-        else:
-            st.session_state.contador_calculos[modulo] += 1
+        controller.set("ja_fez_calculo_gratis", "true", max_age=31536000)
         st.rerun()
 
-    if (
-        st.session_state.contador_calculos.get(modulo, 0) > 0
-        and st.session_state.licenca_global_liberada == False
-    ):
-        total_com_bdi = st.session_state.orcamento_base * (
-            1 + st.session_state.bdi / 100
-        )
-        st.markdown(
-            f"""
-        <div class="card">
-            <h3>📊 Proposta Comercial para: {st.session_state.cliente}</h3>
-            <p><b>Custo Direto Total:</b> R$ {st.session_state.orcamento_base:,.2f}</p>
-            <p><b>BDI / Margem Aplicada:</b> {st.session_state.bdi}%</p>
-            <hr>
-            <h4><b>Preço Final de Venda Sugerido:</b> R$ {total_com_bdi:,.2f}</h4>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-# ==========================================
-# MÓDULO 2: CÁLCULO DE ALVENARIA
-# ==========================================
 elif modulo == "🧱 Cálculo de Alvenaria":
     st.subheader("Dimensionamento Técnico de Alvenaria")
-    col_a1, col_a2 = st.columns(2)
-    with col_a1:
-        area_paredes = st.number_input(
-            "Área Líquida de Paredes (m²):", min_value=1.0, value=80.0
-        )
-    with col_a2:
-        preco_tijolo_un = st.number_input(
-            "Preço Unitário do Bloco (R$):", value=1.20, step=0.10
-        )
-        margem_alvenaria = st.slider(
-            "Margem de Lucro Alvenaria (%):", 10.0, 50.0, 30.0
-        )
+    area_paredes = st.number_input(
+        "Área Líquida de Paredes (m²):", min_value=1.0, value=80.0
+    )
+    preco_tijolo_un = st.number_input(
+        "Preço Unitário do Bloco (R$):", value=1.20, step=0.10
+    )
 
     if st.button("Calcular Insumos de Alvenaria", type="primary"):
-        if modulo not in st.session_state.contador_calculos:
-            st.session_state.contador_calculos[modulo] = 1
-        else:
-            st.session_state.contador_calculos[modulo] += 1
+        controller.set("ja_fez_calculo_gratis", "true", max_age=31536000)
         st.rerun()
 
-    if (
-        st.session_state.contador_calculos.get(modulo, 0) > 0
-        and st.session_state.licenca_global_liberada == False
-    ):
-        qtd_tijolos = int(area_paredes * 25 * 1.10)
-        qtd_areia_m3 = area_paredes * 0.035
-        sacos_cimento = max(1, int(area_paredes * 0.35))
-        custo_mat = (
-            (qtd_tijolos * preco_tijolo_un)
-            + (sacos_cimento * 32.00)
-            + (qtd_areia_m3 * 130.00)
-        )
-        venda_mat = custo_mat * (1 + margem_alvenaria / 100)
-
-        st.markdown(
-            f"""
-        <div class="card">
-            <h4>📋 Relatório Técnico Completo - Alvenaria ({area_paredes} m²)</h4>
-            <p><b>🧱 Tijolos / Blocos (com 10% de perda):</b> {qtd_tijolos} unidades</p>
-            <p><b>🏖️ Areia Média:</b> {qtd_areia_m3:.2f} m³ | <b>📦 Cimento:</b> {sacos_cimento} sacos</p>
-            <hr>
-            <p><b>Custo Direto:</b> R$ {custo_mat:,.2f}</p>
-            <h3 style="color: #1E3A8A;">💰 Preço de Venda Sugerido: R$ {venda_mat:,.2f}</h3>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-# ==========================================
-# MÓDULO 3: CÁLCULO DE LAJES
-# ==========================================
-elif modulo == "🏠 Cálculo Avançado de Lajes":
-    st.subheader("Dimensionamento Técnico, Ferragens e Orçamento de Lajes")
-    col_l1, col_l2 = st.columns(2)
-    with col_l1:
-        area_laje = st.number_input(
-            "Área Total da Laje (m²):", min_value=1.0, value=60.0
-        )
-        tipo_laje = st.selectbox(
-            "Tipo de Laje e Enchimento no Mercado:",
-            [
-                "Laje Pré-Moldada com EPS (Isopor) - Leve e Térmica",
-                "Laje Pré-Moldada com Lajota Cerâmica Tradicional",
-                "Laje Painel Treliçado Maciço (Alta Resistência / Alto Padrão)",
-            ],
-        )
-        bitola_aco_laje = st.selectbox(
-            "Especificação da Malha / Aço da Laje:",
-            [
-                "Tela Soldada Q-61 (Aço CA-60 - Padrão)",
-                "Tela Soldada Q-92 (Reforçada para Sobrados)",
-                "Ferro Adicional Negativo 6.3mm / 8.0mm",
-            ],
-        )
-
-    with col_l2:
-        preco_material_m2 = st.number_input(
-            "Custo de Material da Laje por m² (R$):", value=68.00, step=1.00
-        )
-        preco_mao_obra_laje_m2 = st.number_input(
-            "Custo de Mão de Obra de Instalação por m² (R$):",
-            value=38.00,
-            step=1.00,
-        )
-        margem_lucro_laje = st.slider(
-            "Sua Margem de Lucro Comercial (%):", 10.0, 60.0, 30.0
-        )
-
-    if st.button("Gerar Relatório Completo de Laje", type="primary"):
-        if modulo not in st.session_state.contador_calculos:
-            st.session_state.contador_calculos[modulo] = 1
-        else:
-            st.session_state.contador_calculos[modulo] += 1
+elif modulo in [
+    "🏠 Cálculo Avançado de Lajes",
+    "⚙️ Projeto de Ferragens e Aço",
+    "🏗️ Estrutural, Vigas e Validação",
+    "🚰 Sistema Hidráulico Profissional",
+    "💼 Faturamento e CNPJ",
+]:
+    st.subheader(f"Painel do Módulo: {modulo}")
+    if st.button("Executar Simulação do Módulo", type="primary"):
+        controller.set("ja_fez_calculo_gratis", "true", max_age=31536000)
         st.rerun()
 
-    if (
-        st.session_state.contador_calculos.get(modulo, 0) > 0
-        and st.session_state.licenca_global_liberada == False
-    ):
-        linear_vigotas = area_laje * 1.15
-        concreto_capa = area_laje * 0.065
-        if "EPS" in tipo_laje:
-            qtd_enchimento = int(area_laje * 2.5)
-            nome_ench = "Placas de EPS (Isopor)"
-        elif "Cerâmica" in tipo_laje:
-            qtd_enchimento = int(area_laje * 8.5)
-            nome_ench = "Lajotas Cerâmicas"
-        else:
-            qtd_enchimento = 0
-            nome_ench = "Painel Maciço"
-
-        kg_aco_estimado = area_laje * (
-            3.2 if "Q-61" in bitola_aco_laje else 4.8
-        )
-        total_custo_material = area_laje * preco_material_m2
-        total_custo_mao_obra = area_laje * preco_mao_obra_laje_m2
-        custo_direto_total = total_custo_material + total_custo_mao_obra
-        preco_venda_final = custo_direto_total * (
-            1 + margem_lucro_laje / 100
-        )
-
-        st.markdown(
-            f"""
-        <div class="card">
-            <h4>🏠 Laudo e Orçamento Técnico - Laje ({area_laje} m²)</h4>
-            <p><b>Tipo:</b> {tipo_laje} | <b>Aço:</b> {bitola_aco_laje}</p>
-            <ul>
-                <li>Metragem Linear de Vigotas: <b>{linear_vigotas:.1f} metros</b></li>
-                <li>Enchimento ({nome_ench}): <b>{qtd_enchimento if qtd_enchimento > 0 else 'N/A'} un</b></li>
-                <li>Volume Concreto Capa: <b>{concreto_capa:.2f} m³</b> | Aço: <b>{kg_aco_estimado:.1f} kg</b></li>
-            </ul>
-            <hr>
-            <p><b>Custo Materiais:</b> R$ {total_custo_material:,.2f} | <b>Mão de Obra:</b> R$ {total_custo_mao_obra:,.2f}</p>
-            <h2 style="color: #1E3A8A;">💰 Preço de Venda Sugerido: R$ {preco_venda_final:,.2f}</h2>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-# ==========================================
-# MÓDULO 4: FERRAGENS
-# ==========================================
-elif modulo == "⚙️ Projeto de Ferragens e Aço":
-    st.subheader(
-        "Especificação Técnica de Aço e Bitolas (Padrão de Mestre de Obras)"
-    )
-    col_f1, col_f2 = st.columns(2)
-    with col_f1:
-        porte_obra = st.selectbox(
-            "Porte / Tipo da Obra:",
-            [
-                "Casa Térrea Padrão (Até 100m²)",
-                "Casa Térrea Ampla / Alto Padrão (100 a 200m²)",
-                "Sobrado / Dois Pavimentos",
-            ],
-        )
-        bitola_principal = st.selectbox(
-            "Bitola Principal de Longitudinais:",
-            [
-                "Ferro 3/8 polegadas (9.5mm)",
-                "Ferro 5/16 polegadas (8.0mm)",
-                "Ferro 10 mm",
-            ],
-        )
-    with col_f2:
-        preco_kg_ferro = st.number_input(
-            "Preço Médio do Aço por kg (R$):", value=12.50, step=0.50
-        )
-        margem_ferro = st.slider(
-            "Margem de Lucro Ferragens (%):", 10.0, 50.0, 30.0
-        )
-
-    if st.button("Gerar Especificação e Orçamento de Ferragens", type="primary"):
-        if modulo not in st.session_state.contador_calculos:
-            st.session_state.contador_calculos[modulo] = 1
-        else:
-            st.session_state.contador_calculos[modulo] += 1
-        st.rerun()
-
-    if (
-        st.session_state.contador_calculos.get(modulo, 0) > 0
-        and st.session_state.licenca_global_liberada == False
-    ):
-        kg_total_aco = (
-            450.0
-            if "Padrão" in porte_obra
-            else (750.0 if "Alto" in porte_obra else 1200.0)
-        )
-        custo_ferro_total = kg_total_aco * preco_kg_ferro
-        venda_ferro = custo_ferro_total * (1 + margem_ferro / 100)
-
-        st.markdown(
-            f"""
-        <div class="card">
-            <h4>⚙️ Laudo e Especificação de Aço ({porte_obra})</h4>
-            <p><b>Bitola Principal:</b> {bitola_principal} | <b>Peso Total:</b> {kg_total_aco:.1f} kg</p>
-            <p><b>Custo Aquisição:</b> R$ {custo_ferro_total:,.2f}</p>
-            <h3 style="color: #1E3A8A;">💰 Preço Comercial da Ferragem: R$ {venda_ferro:,.2f}</h3>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-# ==========================================
-# MÓDULO 5: ESTRUTURAL
-# ==========================================
-elif modulo == "🏗️ Estrutural, Vigas e Validação":
-    st.subheader(
-        "Análise de Segurança, Barras de Ferro e Validação Estrutural"
-    )
-    col_e1, col_e2 = st.columns(2)
-    with col_e1:
-        tipo_estrutura = st.selectbox(
-            "Elemento Estrutural:",
-            [
-                "Vigas Baldrame (Fundações)",
-                "Vigas Aéreas / Cintas",
-                "Pilares Estruturais",
-            ],
-        )
-    with col_e2:
-        metragem_linear = st.number_input(
-            "Metragem Linear Total (Metros):", min_value=1.0, value=40.0
-        )
-        margem_est = st.slider(
-            "Margem de Lucro Estrutural (%):", 10.0, 50.0, 30.0
-        )
-
-    if st.button("Executar Auditoria e Cálculo Estrutural", type="primary"):
-        if modulo not in st.session_state.contador_calculos:
-            st.session_state.contador_calculos[modulo] = 1
-        else:
-            st.session_state.contador_calculos[modulo] += 1
-        st.rerun()
-
-    if (
-        st.session_state.contador_calculos.get(modulo, 0) > 0
-        and st.session_state.licenca_global_liberada == False
-    ):
-        volume_concreto = metragem_linear * 0.14 * 0.30 * 1.15
-        kg_aco = metragem_linear * 7.5
-        custo_material_base = (volume_concreto * 380.0) + (kg_aco * 12.50)
-        preco_venda_estrutura = custo_material_base * (1 + margem_est / 100)
-
-        st.markdown(
-            f"""
-        <div class="card">
-            <h4>🏗️ Especificação Prática para Execução</h4>
-            <p><b>Elemento:</b> {tipo_estrutura} | <b>Metragem:</b> {metragem_linear} m</p>
-            <p><b>Volume Concreto:</b> {volume_concreto:.2f} m³ | <b>Aço:</b> {kg_aco:.1f} kg</p>
-            <h3 style="color: #1E3A8A;">💰 Preço de Venda da Estrutura: R$ {preco_venda_estrutura:,.2f}</h3>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-# ==========================================
-# MÓDULO 6: HIDRÁULICO
-# ==========================================
-elif modulo == "🚰 Sistema Hidráulico Profissional":
-    st.subheader("Orçamento Técnico e Quantitativo de Instalações Hidráulicas")
-    col_h1, col_h2 = st.columns(2)
-    with col_h1:
-        pontos_totais = st.number_input(
-            "Total de Pontos Hidráulicos:", min_value=1, value=15
-        )
-        metragem_casa = st.number_input(
-            "Área Construída da Casa (m²):", min_value=10.0, value=80.0
-        )
-    with col_h2:
-        preco_tubo_25 = st.number_input("Preço Cano 25mm:", value=28.00)
-        preco_mao_obra_ponto = st.number_input(
-            "Mão de Obra por Ponto (R$):", value=65.00
-        )
-
-    if st.button("Gerar Orçamento Hidráulico Completo", type="primary"):
-        if modulo not in st.session_state.contador_calculos:
-            st.session_state.contador_calculos[modulo] = 1
-        else:
-            st.session_state.contador_calculos[modulo] += 1
-        st.rerun()
-
-    if (
-        st.session_state.contador_calculos.get(modulo, 0) > 0
-        and st.session_state.licenca_global_liberada == False
-    ):
-        total_material = (metragem_casa * 2.5) + (pontos_totais * 32.00)
-        total_mao_obra = pontos_totais * preco_mao_obra_ponto
-        valor_geral = total_material + total_mao_obra
-
-        st.markdown(
-            f"""
-        <div class="card">
-            <h4>🚰 Relatório Hidráulico Profissional</h4>
-            <p><b>{pontos_totais} Pontos | Casa de {metragem_casa} m²</b></p>
-            <p><b>Total Materiais:</b> R$ {total_material:,.2f} | <b>Total Mão de Obra:</b> R$ {total_mao_obra:,.2f}</p>
-            <h2 style="color: #1E3A8A;">💰 Valor Geral Hidráulico: R$ {valor_geral:,.2f}</h2>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-# ==========================================
-# MÓDULO 7: FATURAMENTO
-# ==========================================
-elif modulo == "💼 Faturamento e CNPJ":
-    st.subheader("Configurações Fiscais")
-    st.text_input("CNPJ:", value="00.000.000/0001-00")
-    st.text_input("Razão Social:", value="Construtech Tubarão LTDA")
-    st.success("Dados fiscais carregados.")
-
+# Rodapé
 st.markdown("---")
 st.markdown(
     "<p style='text-align: center; color: gray;'>Construtech Tubarão © 2026 - Todos os direitos reservados</p>",
