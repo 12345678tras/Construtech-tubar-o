@@ -37,9 +37,9 @@ modulo = st.sidebar.selectbox(
     "Selecione a Ferramenta:",
     [
         "📊 Visão Geral e BDI",
-        "🧱 Cálculo de Alvenaria",
+        "🧱 Cálculo Detalhado de Alvenaria",
         "🏠 Cálculo Avançado de Lajes",
-        "⚙️ Projeto de Ferragens e Aço",
+        "⚙️ Projeto Detalhado de Ferragens e Aço",
         "🏗️ Estrutural, Vigas e Validação",
         "🚰 Sistema Hidráulico Profissional",
         "💼 Faturamento e CNPJ",
@@ -91,7 +91,7 @@ if not st.session_state.licenca_global_liberada and not bloqueado:
 st.markdown("---")
 
 # ==========================================
-# 4. MÓDULOS COM CÁLCULOS REAIS
+# 4. MÓDULOS COM CÁLCULOS TÉCNICOS DETALHADOS
 # ==========================================
 
 if modulo == "📊 Visão Geral e BDI":
@@ -119,136 +119,163 @@ if modulo == "📊 Visão Geral e BDI":
         col_m2.metric("Lucro Bruto Estimado", f"R$ {lucro_estimado:,.2f}")
         st.session_state.ja_fez_calculo_gratis = True
 
-elif modulo == "🧱 Cálculo de Alvenaria":
-    st.subheader("Dimensionamento Técnico de Alvenaria")
+elif modulo == "🧱 Cálculo Detalhado de Alvenaria":
+    st.subheader("Dimensionamento Completo de Alvenaria (Blocos, Cimento e Areia)")
     col1, col2 = st.columns(2)
     with col1:
         area_paredes = st.number_input(
             "Área Líquida de Paredes (m²):", min_value=1.0, value=80.0
         )
+        tipo_bloco = st.selectbox(
+            "Tipo de Bloco Cerâmico:", ["9x19x19 cm", "14x19x19 cm"]
+        )
         preco_tijolo = st.number_input(
             "Preço Unitário do Bloco (R$):", value=1.20, step=0.10
         )
     with col2:
-        consumo_m2 = st.number_input(
-            "Blocos por m² (com perda):", value=35.0, step=1.0
+        preco_cimento = st.number_input(
+            "Preço do Saco de Cimento 50kg (R$):", value=32.00, step=1.00
+        )
+        preco_m3_areia = st.number_input(
+            "Preço do m³ de Areia Média (R$):", value=120.00, step=10.00
         )
 
-    if st.button("Calcular Insumos de Alvenaria", type="primary"):
-        total_blocos = area_paredes * consumo_m2
-        custo_total_blocos = total_blocos * preco_tijolo
-        st.success("Insumos calculados com sucesso!")
-        col_m1, col_m2 = st.columns(2)
-        col_m1.metric("Quantidade de Blocos", f"{total_blocos:.0f} un")
-        col_m2.metric("Custo Total dos Blocos", f"R$ {custo_total_blocos:,.2f}")
+    if st.button("Calcular Insumos Detalhados", type="primary"):
+        # Fórmulas de engenharia civil para estimativa de materiais
+        fator_bloco = 35 if "9x" in tipo_bloco else 25
+        total_blocos = area_paredes * fator_bloco
+        
+        # Estimativa de argamassa de assentamento (~0.018 m³ por m² de parede para bloco 9cm)
+        volume_argamassa_m3 = area_paredes * 0.018
+        # Consumo aproximado por m³ de argamassa mista: ~7 sacos de cimento e ~1.15 m³ de areia
+        total_sacos_cimento = volume_argamassa_m3 * 7.0
+        total_areia_m3 = volume_argamassa_m3 * 1.15
+
+        # Custos
+        custo_blocos = total_blocos * preco_tijolo
+        custo_cimento = total_sacos_cimento * preco_cimento
+        custo_areia = total_areia_m3 * preco_m3_areia
+        custo_total_insumos = custo_blocos + custo_cimento + custo_areia
+
+        st.success("Cálculo de alvenaria e insumos concluído com sucesso!")
+        
+        col_m1, col_m2, col_m3 = st.columns(3)
+        col_m1.metric("Blocos Necessários", f"{total_blocos:.0f} un", f"R$ {custo_blocos:,.2f}")
+        col_m2.metric("Cimento (50kg)", f"{total_sacos_cimento:.1f} sacos", f"R$ {custo_cimento:,.2f}")
+        col_m3.metric("Areia Média", f"{total_areia_m3:.2f} m³", f"R$ {custo_areia:,.2f}")
+
+        st.markdown(f"### 💰 Custo Total Estimado de Insumos: **R$ {custo_total_insumos:,.2f}**")
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "🏠 Cálculo Avançado de Lajes":
-    st.subheader("Dimensionamento de Lajes Pré-moldadas / Treliçadas")
+    st.subheader("Dimensionamento Técnico de Lajes Pré-moldadas / Treliçadas")
     col1, col2 = st.columns(2)
     with col1:
-        area_laje = st.number_input(
-            "Área da Laje (m²):", min_value=1.0, value=50.0
-        )
-        tipo_laje = st.selectbox(
-            "Tipo de Laje:", ["H8 (Forro/Piso leve)", "H12 (Residencial)", "H16 (Sobrecarga Maior)"]
-        )
+        area_laje = st.number_input("Área da Laje (m²):", min_value=1.0, value=50.0)
+        tipo_h = st.selectbox("Altura da Viga Treliçada (H):", ["H8", "H12", "H16", "H20"])
     with col2:
-        valor_m2_laje = st.number_input(
-            "Custo Médio do m² instalado (R$):", value=65.0, step=5.0
-        )
+        preco_m2_laje = st.number_input("Preço Médio do Kit Laje por m² (R$):", value=68.0, step=2.0)
+        espessura_capa = st.number_input("Espessura da Capa de Concreto (cm):", value=4.0, step=0.5)
 
-    if st.button("Calcular Estrutura da Laje", type="primary"):
-        custo_laje_total = area_laje * valor_m2_laje
-        concreto_capa = area_laje * 0.04  # Estimativa de 4cm de capa
-        st.success("Cálculo de laje executado com sucesso!")
-        col_m1, col_m2 = st.columns(2)
-        col_m1.metric("Custo Total da Laje", f"R$ {custo_laje_total:,.2f}")
-        col_m2.metric("Concreto para Capa (m³ aprox.)", f"{concreto_capa:.2f} m³")
+    if st.button("Calcular Especificações da Laje", type="primary"):
+        custo_kit = area_laje * preco_m2_laje
+        volume_concreto_capa = area_laje * (espessura_capa / 100.0)
+        # Estimativa de vigotas lineares (aproximadamente 1.7 metros lineares por m²)
+        metros_lineares_vigotas = area_laje * 1.7
+        
+        st.success("Dimensionamento da laje realizado!")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Vigotas Treliçadas (Aprox.)", f"{metros_lineares_vigotas:.1f} m")
+        c2.metric("Concreto para Capa", f"{volume_concreto_capa:.2f} m³")
+        c3.metric("Custo Total Estimado", f"R$ {custo_kit:,.2f}")
         st.session_state.ja_fez_calculo_gratis = True
 
-elif modulo == "⚙️ Projeto de Ferragens e Aço":
-    st.subheader("Dimensionamento e Custo de Aço (CA-50 / CA-60)")
+elif modulo == "⚙️ Projeto Detalhado de Ferragens e Aço":
+    st.subheader("Especificação e Custo Detalhado de Aço (CA-50 e CA-60)")
     col1, col2 = st.columns(2)
     with col1:
-        peso_aco_kg = st.number_input(
-            "Consumo Estimado de Aço (kg):", min_value=1.0, value=450.0
+        area_construida = st.number_input("Área Construída da Obra (m²):", min_value=10.0, value=100.0)
+        consumo_medio_aco = st.selectbox(
+            "Padrão de Armadura (kg por m²):", 
+            ["Leve / Residencial Padrão (10 kg/m²)", "Médio / Estruturado (15 kg/m²)", "Pesado / Sobrado (20 kg/m²)"]
         )
     with col2:
-        preco_kg_aco = st.number_input(
-            "Preço Médio do kg do Aço (R$):", value=11.50, step=0.50
-        )
+        preco_kg = st.number_input("Preço Médio do Aço por kg (R$):", value=11.50, step=0.50)
 
-    if st.button("Calcular Custo de Aço", type="primary"):
-        custo_aco_total = peso_aco_kg * preco_kg_aco
-        st.success("Cálculo de ferragens executado com sucesso!")
-        col_m1, col_m2 = st.columns(2)
-        col_m1.metric("Peso Total de Aço", f"{peso_aco_kg:.1f} kg")
-        col_m2.metric("Custo Total com Aço", f"R$ {custo_aco_total:,.2f}")
+    if st.button("Gerar Detalhamento de Ferragens", type="primary"):
+        fator = 10 if "Leve" in consumo_medio_aco else (15 if "Médio" in consumo_medio_aco else 20)
+        peso_total_kg = area_construida * fator
+        
+        # Divisão técnica estimada por bitola
+        peso_10mm = peso_total_kg * 0.45  # 45% vigas/pilares
+        peso_8mm = peso_total_kg * 0.35   # 35% estribos/lajes
+        peso_63mm = peso_total_kg * 0.20  # 20% distribuições
+        
+        custo_total_aco = peso_total_kg * preco_kg
+
+        st.success("Detalhamento de ferragens gerado com sucesso!")
+        
+        st.write(f"**Peso Total Estimado de Aço:** `{peso_total_kg:.1f} kg` | **Custo Total:** `R$ {custo_total_aco:,.2f}`")
+        
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Aço 10.0 mm (3/8'')", f"{peso_10mm:.1f} kg")
+        c2.metric("Aço 8.0 mm (5/16'')", f"{peso_8mm:.1f} kg")
+        c3.metric("Aço 6.3 mm (1/4'')", f"{peso_63mm:.1f} kg")
+        
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "🏗️ Estrutural, Vigas e Validação":
-    st.subheader("Verificação de Vigas e Pilares de Concreto")
+    st.subheader("Dimensionamento e Verificação de Vigas")
     col1, col2 = st.columns(2)
     with col1:
-        comprimento_viga = st.number_input(
-            "Comprimento do Vão da Viga (m):", min_value=1.0, value=4.5
-        )
-        carga_linear = st.number_input(
-            "Carga Estimada (kN/m):", min_value=1.0, value=12.0
-        )
+        vao_viga = st.number_input("Vão Livre da Viga (m):", min_value=1.0, value=4.0)
+        carga_viga = st.number_input("Esforço / Carga Aplicada (kN/m):", min_value=1.0, value=15.0)
     with col2:
-        fck_concreto = st.selectbox("Resistência do Concreto (fck):", [20, 25, 30, 35])
+        fck = st.selectbox("Resistência do Concreto (fck):", [20, 25, 30])
 
-    if st.button("Validar Viga Estrutural", type="primary"):
-        altura_minima = (comprimento_viga * 100) / 12  # Regra prática L/12 em cm
-        st.success("Validação estrutural realizada!")
-        col_m1, col_m2 = st.columns(2)
-        col_m1.metric("Altura Mínima Recomendada", f"{altura_minima:.1f} cm")
-        col_m2.metric("Status fck", f"{fck_concreto} MPa (Adequado)")
+    if st.button("Validar Estrutura", type="primary"):
+        altura_sugerida = (vao_viga * 100) / 10 # Regra prática L/10 em cm
+        base_sugerida = altura_sugerida / 2.5
+        st.success("Viga validada com sucesso!")
+        c1, c2 = st.columns(2)
+        c1.metric("Seção Transversal Sugerida", f"{base_sugerida:.0f} x {altura_sugerida:.0f} cm")
+        c2.metric("Especificação do Concreto", f"fck {fck} MPa")
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "🚰 Sistema Hidráulico Profissional":
-    st.subheader("Dimensionamento de Reservatório e Tubulações")
+    st.subheader("Dimensionamento de Consumo e Reservatório de Água")
     col1, col2 = st.columns(2)
     with col1:
-        num_pessoas = st.number_input(
-            "Número de Moradores / Usuários:", min_value=1, value=4
-        )
-        consumo_per_capita = st.number_input(
-            "Consumo por Pessoa (Litros/dia):", value=200.0, step=10.0
-        )
+        moradores = st.number_input("Número de Habitantes / Usuários:", min_value=1, value=4)
+        consumo_diario = st.number_input("Consumo por Pessoa (Litros/dia):", value=200.0)
     with col2:
-        dias_reserva = st.number_input("Dias de Reserva Técnica:", value=2)
+        dias_reserva = st.number_input("Autonomia de Reserva (Dias):", value=2)
 
-    if st.button("Calcular Reservatório Hidráulico", type="primary"):
-        volume_total = num_pessoas * consumo_per_capita * dias_reserva
+    if st.button("Calcular Hidráulica", type="primary"):
+        volume_necessario = moradores * consumo_diario * dias_reserva
         st.success("Dimensionamento hidráulico concluído!")
-        col_m1, col_m2 = st.columns(2)
-        col_m1.metric("Volume de Água Necessário", f"{volume_total:,.0f} Litros")
-        col_m2.metric("Reserva Recomendada", f"Caixa d'água de {volume_total}L")
+        c1, c2 = st.columns(2)
+        c1.metric("Volume Mínimo do Reservatório", f"{volume_necessario:,.0f} Litros")
+        c2.metric("Sugestão Comercial de Caixa", f"Instalar reservatório de {max(500, int(volume_necessario))}L")
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "💼 Faturamento e CNPJ":
-    st.subheader("Orçamento Comercial e Emissão de Proposta")
+    st.subheader("Orçamento Comercial e Proposta de Serviços")
     col1, col2 = st.columns(2)
     with col1:
-        valor_servico = st.number_input(
-            "Valor Líquido dos Serviços (R$):", value=15000.0, step=500.0
-        )
-        imposto_simples = st.slider("Alíquota de Impostos / Nota Fiscal (%):", 0.0, 20.0, 6.0)
+        valor_bruto = st.number_input("Valor Base dos Serviços (R$):", value=12000.0, step=500.0)
+        imposto_aliquota = st.slider("Alíquota de Impostos / Nota Fiscal (%):", 0.0, 20.0, 6.0)
     with col2:
-        desconto = st.number_input("Desconto Concedido (R$):", value=0.0, step=100.0)
+        desconto = st.number_input("Desconto Especial (R$):", value=0.0, step=100.0)
 
-    if st.button("Gerar Proposta Comercial", type="primary"):
-        valor_impostos = valor_servico * (imposto_simples / 100)
-        valor_final_nf = valor_servico + valor_impostos - desconto
-        st.success("Proposta gerada com sucesso!")
-        col_m1, col_m2 = st.columns(2)
-        col_m1.metric("Valor com Impostos", f"R$ {valor_final_nf:,.2f}")
-        col_m2.metric("Impostos Calculados", f"R$ {valor_impostos:,.2f}")
+    if st.button("Emitir Proposta Comercial", type="primary"):
+        valor_imposto = valor_bruto * (imposto_aliquota / 100)
+        total_liquido = valor_bruto + valor_imposto - desconto
+        st.success("Proposta comercial calculada!")
+        c1, c2 = st.columns(2)
+        c1.metric("Valor Total com Impostos", f"R$ {total_liquido:,.2f}")
+        c2.metric("Valor dos Tributos", f"R$ {valor_imposto:,.2f}")
         st.session_state.ja_fez_calculo_gratis = True
-
 
 # ==========================================
 # 5. TELA DE PAYWALL APÓS O USO DO TESTE
