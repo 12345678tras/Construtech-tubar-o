@@ -15,27 +15,19 @@ st.markdown(
     .sub-header { font-size: 16px; color: #4B5563; }
     .card { background-color: #F3F4F6; padding: 20px; border-radius: 10px; margin-bottom: 15px; }
     .paywall-box { background-color: #FEF2F2; border: 2px dashed #EF4444; padding: 30px; border-radius: 10px; text-align: center; }
+    .admin-box { background-color: #EFF6FF; border: 1px solid #3B82F6; padding: 15px; border-radius: 8px; margin-top: 20px; }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
 # ==========================================
-# SISTEMA DE CONTROLE DE ACESSO (PAYWALL)
+# SISTEMA DE CONTROLE DE ACESSO (PAYWALL + ADMIN)
 # ==========================================
-# Inicializa as chaves de controle no session_state
 if "acesso_liberado" not in st.session_state:
-    # Verificamos se já existe um registro simulado neste navegador/computador
-    st.session_state.acesso_liberado = st.session_state.get(
-        "acesso_liberado", False
-    )
+    st.session_state.acesso_liberado = False
 
-# Parâmetro de simulação de pagamento via URL (ex: ?liberado=true)
-params = st.query_params
-if "liberado" in params and params["liberado"] == "sim":
-    st.session_state.acesso_liberado = True
-
-# Tela de Bloqueio se o acesso não foi liberado ou pago
+# Tela de Bloqueio (Caso não seja o cliente pagante nem o seu computador de admin)
 if not st.session_state.acesso_liberado:
     st.markdown(
         '<p class="main-header" style="text-align: center;">🏗️ Construtech Tubarão</p>',
@@ -50,36 +42,59 @@ if not st.session_state.acesso_liberado:
     st.markdown(
         """
         <div class="paywall-box">
-            <h2>⚠️ Acesso Único Utilizado</h2>
-            <p>Identificamos que este computador já utilizou o acesso de demonstração gratuito desta plataforma.</p>
-            <p>Para continuar utilizando nossos módulos profissionais de cálculo e engenharia, por favor, realize o pagamento da licença de acesso.</p>
+            <h2>⚠️ Acesso Restrito / Pagamento Pendente</h2>
+            <p>Esta plataforma exige o licenciamento de uso por computador.</p>
+            <p>Para continuar utilizando os módulos profissionais, escaneie o QR Code ou realize o Pix para os dados abaixo:</p>
             <br>
-            <h4>Chave PIX para Pagamento:</h4>
-            <p style="font-size: 18px; font-weight: bold; color: #1E3A8A;">financeiro@construtechtubarao.com.br</p>
-            <p><i>(Envie o comprovante para liberar seu acesso instantaneamente)</i></p>
+            <h4>Beneficiário:</h4>
+            <p style="font-size: 18px; font-weight: bold; color: #1E3A8A;">CAC CONTABILIZANDO</p>
+            <p><b>WhatsApp para envio do comprovante:</b> +55 (64) 99304-4147</p>
+            <p><i>(Processado via InfinitePay)</i></p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    col_a, col_b, col_c = st.columns([1, 2, 1])
-    with col_b:
+    # Espaço para exibir o QR Code (Caso você tenha a imagem salva, basta descomentar a linha abaixo)
+    col_q1, col_q2, col_q3 = st.columns([1, 2, 1])
+    with col_q2:
         st.write("")
-        # Botão de simulação para você testar a liberação após o "pagamento"
-        if st.button(
-            "Já fiz o pagamento / Simular Liberação",
-            type="primary",
-            use_container_width=True,
-        ):
-            st.session_state.acesso_liberado = True
-            st.rerun()
+        # DICA: Se você tiver a foto do QR Code na mesma pasta do código, 
+        # mude 'qrcode.png' para o nome exato do seu arquivo de imagem:
+        # st.image("qrcode.png", caption="Escaneie para Pagar via Pix", width=250)
+        st.info("💡 (Dica para você: Insira a foto do seu QR Code na tela de pagamento para facilitar para o cliente).")
 
-    st.stop(
-    )  # Interrompe a execução do restante do código caso não esteja liberado
+    # SEÇÃO EXCLUSIVA PARA VOCÊ (DONO/ADMINISTRADOR)
+    with st.container():
+        st.markdown(
+            '<div class="admin-box">', unsafe_allow_html=True
+        )
+        st.write("🔑 **Área do Desenvolvedor / Dono da Plataforma**")
+        senha_admin = st.text_input(
+            "Digite sua senha de Administrador para liberar seu computador:",
+            type="password",
+            placeholder="Digite a senha mestre",
+        )
+
+        # Defina aqui a sua senha secreta para liberar o seu computador
+        SENHA_MESTRE = "tubarao2026"  # <--- ALTERE A SENHA AQUI SE QUISER
+
+        if st.button("Liberar meu Computador (Admin)", type="primary"):
+            if senha_admin == SENHA_MESTRE:
+                st.session_state.acesso_liberado = True
+                st.success(
+                    "Computador reconhecido como Administrador! Entrando..."
+                )
+                st.rerun()
+            else:
+                st.error("Senha de administrador incorreta!")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.stop()  # Para a execução aqui se não estiver liberado
 
 
 # ==========================================
-# APLICAÇÃO PRINCIPAL (Liberada após acesso)
+# APLICAÇÃO PRINCIPAL (Liberada)
 # ==========================================
 
 # Cabeçalho Principal
@@ -105,8 +120,8 @@ modulo = st.sidebar.selectbox(
     ],
 )
 
-# Botão na barra lateral para simular novo bloqueio (útil para testes)
-if st.sidebar.button("🔒 Bloquear / Sair deste Computador"):
+# Botão na barra lateral para bloquear novamente se precisar testar
+if st.sidebar.button("🔒 Bloquear Sistema (Testar Paywall)"):
     st.session_state.acesso_liberado = False
     st.rerun()
 
