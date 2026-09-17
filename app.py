@@ -66,7 +66,6 @@ if not st.session_state.acesso_liberado:
         )
         st.write("🔑 **Área do Administrador / Liberação por Chave**")
 
-        # Usando um formulário para processar a senha perfeitamente sem refresh prematuro
         with st.form(key="form_admin"):
             senha_admin = st.text_input(
                 "Senha de Liberação:",
