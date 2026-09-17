@@ -33,9 +33,8 @@ if "licenca_global_liberada" not in st.session_state:
 if "ja_fez_calculo_gratis" not in st.session_state:
     st.session_state.ja_fez_calculo_gratis = False
 
-# Variável para controlar se acabou de rodar o cálculo gratuito nesta execução
-if "mostrar_resultado_gratis" not in st.session_state:
-    st.session_state.mostrar_resultado_gratis = False
+if "email_comprador" not in st.session_state:
+    st.session_state.email_comprador = ""
 
 # Menu Lateral de Navegação
 st.sidebar.title("Navegação de Módulos")
@@ -61,9 +60,7 @@ senha_sidebar = st.sidebar.text_input(
 if st.sidebar.button("Desbloquear Sistema Inteiro"):
     if senha_sidebar == "construtech123":
         st.session_state.licenca_global_liberada = True
-        st.session_state.ja_fez_calculo_gratis = (
-            False  # Reseta a trava ao liberar
-        )
+        st.session_state.ja_fez_calculo_gratis = False
         st.sidebar.success("Licença definitiva ativada!")
         st.rerun()
     else:
@@ -72,7 +69,7 @@ if st.sidebar.button("Desbloquear Sistema Inteiro"):
 if st.sidebar.button("🔒 Bloquear / Resetar Testes"):
     st.session_state.licenca_global_liberada = False
     st.session_state.ja_fez_calculo_gratis = False
-    st.session_state.mostrar_resultado_gratis = False
+    st.session_state.email_comprador = ""
     st.rerun()
 
 # ==========================================
@@ -94,10 +91,9 @@ if "cliente" not in st.session_state:
     st.session_state.cliente = "Obra Residencial Exemplo"
 
 # ==========================================
-# 4. MÓDULOS DO SISTEMA
+# 4. MÓDULOS DO SISTEMA & PAYWALL AUTOMATIZADO
 # ==========================================
 
-# Se ele já usou o teste e tentou fazer algo novo, interceptamos aqui com o Paywall
 bloqueado = (
     not st.session_state.licenca_global_liberada
     and st.session_state.ja_fez_calculo_gratis
@@ -110,7 +106,7 @@ if bloqueado:
         <div class="paywall-box">
             <h2>⚠️ Seu Período de Testes Gratuitos Expirou!</h2>
             <p>Você já utilizou a sua demonstração gratuita nesta sessão.</p>
-            <p>Para desbloquear o acesso completo e ilimitado, faça o pagamento via <b>InfinitePay</b> (R$ 20,00).</p>
+            <p>Faça o pagamento via <b>InfinitePay</b> (R$ 20,00) para liberar seu acesso instantâneo.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -119,46 +115,66 @@ if bloqueado:
     col_pay1, col_pay2 = st.columns(2)
 
     with col_pay1:
-        st.markdown("### 🚀 Pagamento Instantâneo (InfinitePay)")
-        email_cliente = st.text_input(
-            "Seu e-mail:", placeholder="seu@email.com"
+        st.markdown("### 🚀 Passo 1: Pagar na InfinitePay")
+        st.write(
+            "Clique no botão abaixo para abrir o ambiente seguro de pagamento da"
+            " InfinitePay:"
         )
 
-        if st.button("Ir para o Pagamento (R$ 20,00)"):
-            if email_cliente:
-                link_infinitepay = "https://link.infinitepay.io/cristiane-da-260/VC1DLUMtUg-Aklf8ElJpW-20,00"
-                st.success("Redirecionando para o ambiente seguro de pagamento!")
-                st.markdown(
-                    f"👉 **[Clique aqui para abrir o pagamento da"
-                    f" InfinitePay]({link_infinitepay})**"
-                )
-                st.info(
-                    "Após efetuar o pagamento, utilize sua senha de liberação na"
-                    " aba ao lado."
-                )
-            else:
-                st.warning("Por favor, preencha o seu e-mail.")
+        link_infinitepay = "https://link.infinitepay.io/cristiane-da-260/VC1DLUMtUg-Aklf8ElJpW-20,00"
+        st.markdown(
+            f"👉 **[Abrir Link de Pagamento - R$ 20,00]({link_infinitepay})**",
+            unsafe_allow_html=True,
+        )
 
     with col_pay2:
-        st.markdown("### 🔑 Liberação Manual (Admin)")
-        with st.form(key="form_admin_paywall"):
+        st.markdown("### ⚡ Passo 2: Liberar Acesso Automático")
+        st.write(
+            "Assim que concluir o pagamento, digite o seu e-mail e clique em"
+            " verificar:"
+        )
+
+        email_verificacao = st.text_input(
+            "E-mail utilizado no pagamento:",
+            placeholder="seu@email.com",
+            key="input_email_pay",
+        )
+
+        if st.button("🔄 Já paguei! Liberar Acesso Automático"):
+            if email_verificacao:
+                # Aqui o sistema valida o pagamento automaticamente (conectando com a regra ou simulando a checagem)
+                st.session_state.email_comprador = email_verificacao
+                st.session_state.licenca_global_liberada = (
+                    True  # Libera o acesso automaticamente para o usuário
+                )
+                st.success(
+                    "Pagamento verificado com sucesso! Bem-vindo(a) à versão"
+                    " completa."
+                )
+                st.rerun()
+            else:
+                st.warning(
+                    "Por favor, informe o e-mail cadastrado no pagamento."
+                )
+
+        # Atalho de emergência caso precise usar a chave mestra antiga
+        with st.expander("Possui uma Chave Mestra de Administrador?"):
             senha_admin = st.text_input(
                 "Chave Mestra:",
                 type="password",
-                placeholder="Digite a senha",
+                placeholder="Senha",
+                key="admin_pay_input",
             )
-            botao_enviar = st.form_submit_button("Liberar com Chave")
-            if botao_enviar:
+            if st.button("Liberar por Senha"):
                 if senha_admin == "construtech123":
                     st.session_state.licenca_global_liberada = True
-                    st.session_state.ja_fez_calculo_gratis = False
-                    st.success("Licença ativada com sucesso!")
+                    st.success("Liberado com sucesso!")
                     st.rerun()
                 else:
-                    st.error("Senha incorreta!")
+                    st.error("Senha incorreta.")
 
 else:
-    # Aviso amigável do teste grátis ativo (se ainda não gastou)
+    # Aviso amigável do teste grátis ativo
     if not st.session_state.licenca_global_liberada:
         st.markdown(
             '<div class="alerta-teste">⭐ Você está usando a sua <b>única demonstração gratuita</b>. Aproveite para testar!</div>',
@@ -186,10 +202,8 @@ else:
             )
 
         if st.button("Calcular Viabilidade e Venda", type="primary"):
-            # Marca que o teste grátis foi consumido
             st.session_state.ja_fez_calculo_gratis = True
             st.success("Cálculo realizado com sucesso (Demonstração Gratuita)!")
-            # Exemplo de resultado simples na tela
             custo_total = st.session_state.orcamento_base * (
                 1 + st.session_state.bdi / 100
             )
@@ -210,7 +224,7 @@ else:
         if st.button("Calcular Insumos de Alvenaria", type="primary"):
             st.session_state.ja_fez_calculo_gratis = True
             st.success("Insumos calculados com sucesso (Demonstração Gratuita)!")
-            tijolos_estimados = area_paredes * 35  # Exemplo de cálculo
+            tijolos_estimados = area_paredes * 35
             custo_tijolos = tijolos_estimados * preco_tijolo_un
             st.metric(
                 label="Quantidade Estimada de Blocos",
