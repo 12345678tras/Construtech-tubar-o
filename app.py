@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit_cookies_controller import CookieController
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA
@@ -9,9 +8,6 @@ st.set_page_config(
     page_icon="🏗️",
     layout="wide",
 )
-
-# Inicializa o controlador de cookies do navegador
-controller = CookieController()
 
 # Estilização visual limpa e profissional
 st.markdown(
@@ -29,14 +25,13 @@ st.markdown(
 )
 
 # ==========================================
-# 2. CONTROLE DE SESSÃO E COOKIES (TRAVA POR MÁQUINA)
+# 2. CONTROLE DE SESSÃO (NATIVO DO STREAMLIT)
 # ==========================================
 if "licenca_global_liberada" not in st.session_state:
-    cookie_liberado = controller.get("construtech_liberado")
-    if cookie_liberado == "true":
-        st.session_state.licenca_global_liberada = True
-    else:
-        st.session_state.licenca_global_liberada = False
+    st.session_state.licenca_global_liberada = False
+
+if "ja_fez_calculo_gratis" not in st.session_state:
+    st.session_state.ja_fez_calculo_gratis = False
 
 # Menu Lateral de Navegação
 st.sidebar.title("Navegação de Módulos")
@@ -62,28 +57,23 @@ senha_sidebar = st.sidebar.text_input(
 if st.sidebar.button("Desbloquear Sistema Inteiro"):
     if senha_sidebar == "construtech123":
         st.session_state.licenca_global_liberada = True
-        controller.set("construtech_liberado", "true", max_age=31536000)
-        st.sidebar.success("Licença definitiva ativada e salva na máquina!")
+        st.sidebar.success("Licença definitiva ativada!")
         st.rerun()
     else:
         st.sidebar.error("Senha incorreta!")
 
-if st.sidebar.button("🔒 Bloquear / Resetar Testes (Zerar Cookie)"):
+if st.sidebar.button("🔒 Bloquear / Resetar Testes"):
     st.session_state.licenca_global_liberada = False
-    controller.remove("construtech_liberado")
-    controller.remove("ja_fez_calculo_gratis")
+    st.session_state.ja_fez_calculo_gratis = False
     st.rerun()
 
 
-# Função para verificar se o usuário já gastou o cálculo gratuito usando Cookies
+# Função para verificar se o usuário já gastou o cálculo gratuito
 def verificar_acesso_global():
     if st.session_state.licenca_global_liberada:
         return True
-
-    ja_usou = controller.get("ja_fez_calculo_gratis")
-    if ja_usou == "true":
+    if st.session_state.ja_fez_calculo_gratis:
         return False
-
     return True
 
 
@@ -109,7 +99,7 @@ if not liberado_atual:
         """
         <div class="paywall-box">
             <h2>⚠️ Seu Período de Testes Gratuitos Expirou!</h2>
-            <p>Você já utilizou a sua demonstração gratuita neste computador.</p>
+            <p>Você já utilizou a sua demonstração gratuita nesta sessão.</p>
             <p>Para desbloquear o acesso completo e ilimitado, faça o pagamento via <b>InfinitePay</b> (R$ 20,00).</p>
         </div>
         """,
@@ -126,17 +116,15 @@ if not liberado_atual:
 
         if st.button("Ir para o Pagamento (R$ 20,00)"):
             if email_cliente:
-                # SEU LINK REAL DA INFINITEPAY INSERIDO AQUI:
                 link_infinitepay = "https://link.infinitepay.io/cristiane-da-260/VC1DLUMtUg-Aklf8ElJpW-20,00"
-
                 st.success("Redirecionando para o ambiente seguro de pagamento!")
                 st.markdown(
                     f"👉 **[Clique aqui para abrir o pagamento da"
                     f" InfinitePay]({link_infinitepay})**"
                 )
                 st.info(
-                    "Após efetuar o pagamento, entre em contato ou utilize sua"
-                    " senha de liberação."
+                    "Após efetuar o pagamento, utilize sua senha de liberação na"
+                    " aba ao lado."
                 )
             else:
                 st.warning("Por favor, preencha o seu e-mail.")
@@ -153,7 +141,6 @@ if not liberado_atual:
             if botao_enviar:
                 if senha_admin == "construtech123":
                     st.session_state.licenca_global_liberada = True
-                    controller.set("construtech_liberado", "true", max_age=31536000)
                     st.success("Licença ativada com sucesso!")
                     st.rerun()
                 else:
@@ -164,7 +151,7 @@ if not liberado_atual:
 # Aviso amigável do teste grátis ativo
 if not st.session_state.licenca_global_liberada:
     st.markdown(
-        f'<div class="alerta-teste">⭐ Você está usando a sua <b>única demonstração gratuita</b> liberada para este computador. Aproveite para testar!</div>',
+        '<div class="alerta-teste">⭐ Você está usando a sua <b>única demonstração gratuita</b>. Aproveite para testar!</div>',
         unsafe_allow_html=True,
     )
 
@@ -200,7 +187,7 @@ if modulo == "📊 Visão Geral e BDI":
         )
 
     if st.button("Calcular Viabilidade e Venda", type="primary"):
-        controller.set("ja_fez_calculo_gratis", "true", max_age=31536000)
+        st.session_state.ja_fez_calculo_gratis = True
         st.rerun()
 
 elif modulo == "🧱 Cálculo de Alvenaria":
@@ -213,7 +200,7 @@ elif modulo == "🧱 Cálculo de Alvenaria":
     )
 
     if st.button("Calcular Insumos de Alvenaria", type="primary"):
-        controller.set("ja_fez_calculo_gratis", "true", max_age=31536000)
+        st.session_state.ja_fez_calculo_gratis = True
         st.rerun()
 
 elif modulo in [
@@ -225,7 +212,7 @@ elif modulo in [
 ]:
     st.subheader(f"Painel do Módulo: {modulo}")
     if st.button("Executar Simulação do Módulo", type="primary"):
-        controller.set("ja_fez_calculo_gratis", "true", max_age=31536000)
+        st.session_state.ja_fez_calculo_gratis = True
         st.rerun()
 
 # Rodapé
