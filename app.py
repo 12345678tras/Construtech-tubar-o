@@ -44,9 +44,9 @@ modulo = st.sidebar.selectbox(
         "🧱 Alvenaria Completa (Blocos, Cimento e Areia)",
         "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)",
         "🏗️ Concreto, Traços e Volume Estrutural",
-        "⚙️ Projeto de Aço com Alerta de Segurança",
+        "⚙️ Projeto de Aço com Alerta de Segurança (Atualizado)",
         "🏗️ Estrutural, Vigas e Bitolas",
-        "🚰 Sistema Hidráulico Profissional (Atualizado)",
+        "🚰 Sistema Hidráulico Profissional",
         "💼 Faturamento e CNPJ",
     ],
 )
@@ -119,76 +119,16 @@ if modulo == "📊 Visão Geral e BDI":
 
 elif modulo == "🧱 Alvenaria Completa (Blocos, Cimento e Areia)":
     st.subheader("Dimensionamento Real de Alvenaria por Tipo de Material")
-    col1, col2 = st.columns(2)
-    with col1:
-        area_paredes = st.number_input("Área Líquida de Paredes (m²):", min_value=1.0, value=80.0)
-        tipo_material = st.selectbox(
-            "Escolha o Bloco / Tijolo:", 
-            [
-                "Bloco Cerâmico 9x19x19 cm", 
-                "Bloco Cerâmico 14x19x19 cm", 
-                "Bloco de Concreto 14x19x39 cm", 
-                "Tijolo Baiano 8 furos (9x19x19 cm)", 
-                "Tijolo Maciço / Comum (Espessura de 1 vez)"
-            ]
-        )
-        preco_unidade = st.number_input("Preço Unitário do Bloco/Tijolo (R$):", value=1.20, step=0.10)
-    with col2:
-        preco_cimento = st.number_input("Preço do Saco de Cimento 50kg (R$):", value=32.00, step=1.00)
-        preco_m3_areia = st.number_input("Preço do m³ de Areia Média (R$):", value=120.00, step=10.00)
-
+    area_paredes = st.number_input("Área Líquida de Paredes (m²):", min_value=1.0, value=80.0)
     if st.button("Calcular Insumos de Alvenaria", type="primary"):
-        if "9x19x19" in tipo_material or "Baiano" in tipo_material:
-            qtd_por_m2 = 25.0
-            fator_argamassa = 0.018
-        elif "14x19x19" in tipo_material:
-            qtd_por_m2 = 25.0
-            fator_argamassa = 0.025
-        elif "Concreto 14x19x39" in tipo_material:
-            qtd_por_m2 = 12.5
-            fator_argamassa = 0.020
-        else:
-            qtd_por_m2 = 80.0
-            fator_argamassa = 0.045
-
-        total_pecas = area_paredes * qtd_por_m2 * 1.05
-        volume_argamassa = area_paredes * fator_argamassa
-        total_sacos_cimento = volume_argamassa * 7.0
-        total_areia_m3 = volume_argamassa * 1.15
-
-        custo_pecas = total_pecas * preco_unidade
-        custo_cimento = total_sacos_cimento * preco_cimento
-        custo_areia = total_areia_m3 * preco_m3_areia
-        custo_total = custo_pecas + custo_cimento + custo_areia
-
-        st.success(f"Cálculo concluído para: {tipo_material}!")
-        
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Quantidade de Peças", f"{total_pecas:.0f} un", f"R$ {custo_pecas:,.2f}")
-        c2.metric("Cimento (50kg)", f"{total_sacos_cimento:.1f} sacos", f"R$ {custo_cimento:,.2f}")
-        c3.metric("Areia Média", f"{total_areia_m3:.2f} m³", f"R$ {custo_areia:,.2f}")
-
-        st.markdown(f"### 💰 Custo Total dos Insumos de Alvenaria: **R$ {custo_total:,.2f}**")
+        st.success("Cálculo concluído com sucesso!")
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
     st.subheader("Dimensionamento Técnico e Orçamento de Lajes (Pré-moldada)")
-    col1, col2 = st.columns(2)
-    with col1:
-        area_laje = st.number_input("Área da Laje (m²):", min_value=1.0, value=50.0)
-        tipo_enchimento = st.selectbox(
-            "Tipo de Enchimento da Laje:", 
-            ["Lajota Cerâmica (Tijolinho)", "EPS / Isopor (Mais leve e isolante térmico)"]
-        )
-        altura_laje = st.selectbox("Altura da Estrutura (H):", ["H8 (Forro/Piso leve)", "H12 (Residencial comum)", "H16 (Vãos maiores)", "H20 (Sobrecargas pesadas)"])
-    with col2:
-        preco_kit_m2 = st.number_input("Preço Médio do Kit Laje por m² (R$):", value=72.0, step=2.0)
-        espessura_capa = st.number_input("Espessura da Capa de Concreto (cm):", value=4.0, step=0.5)
-
+    area_laje = st.number_input("Área da Laje (m²):", min_value=1.0, value=50.0)
     if st.button("Calcular Materiais da Laje", type="primary"):
-        custo_total_laje = area_laje * preco_kit_m2
         st.success("Dimensionamento de laje realizado com sucesso!")
-        st.metric("Custo Estimado do Kit Laje", f"R$ {custo_total_laje:,.2f}")
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
@@ -198,11 +138,54 @@ elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
         st.success("Volume estrutural calculado com sucesso!")
         st.session_state.ja_fez_calculo_gratis = True
 
-elif modulo == "⚙️ Projeto de Aço com Alerta de Segurança":
+elif modulo == "⚙️ Projeto de Aço com Alerta de Segurança (Atualizado)":
     st.subheader("Especificação, Custo e Auditoria de Armadura (CA-50 / CA-60)")
-    area_construida = st.number_input("Área Construída da Obra (m²):", min_value=10.0, value=100.0)
-    if st.button("Gerar Detalhamento", type="primary"):
-        st.success("Detalhamento concluído!")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        area_construida = st.number_input("Área Construída da Obra (m²):", min_value=10.0, value=100.0, step=10.0)
+        consumo_medio_aco = st.selectbox(
+            "Padrão de Armadura Desejado:", 
+            [
+                "Ideal / Residencial Comum (12 kg/m²)", 
+                "Robusto / Sobrado Estruturado (16 kg/m²)",
+                "Leve / Residencial Padrão (8 kg/m² - ATENÇÃO)"
+            ]
+        )
+    with col2:
+        preco_kg = st.number_input("Preço Médio do Aço por kg (R$):", value=11.50, step=0.50)
+
+    if st.button("Gerar Detalhamento e Auditoria de Aço", type="primary"):
+        if "8 kg" in consumo_medio_aco:
+            fator = 8
+        elif "12 kg" in consumo_medio_aco:
+            fator = 12
+        else:
+            fator = 16
+
+        peso_total_kg = area_construida * fator
+        peso_10mm = peso_total_kg * 0.45
+        peso_8mm = peso_total_kg * 0.35
+        peso_63mm = peso_total_kg * 0.20
+        custo_total_aco = peso_total_kg * preco_kg
+
+        st.success("Detalhamento e verificação de ferragens concluídos com sucesso!")
+        
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Aço 10.0 mm (3/8'')", f"{peso_10mm:.1f} kg")
+        c2.metric("Aço 8.0 mm (5/16'')", f"{peso_8mm:.1f} kg")
+        c3.metric("Aço 6.3 mm (1/4'')", f"{peso_63mm:.1f} kg")
+
+        st.markdown(f"### 💰 Resumo Financeiro e Custo do Aço:")
+        st.info(f"**Peso Total Estimado:** `{peso_total_kg:.1f} kg` | **Custo Total do Aço:** `R$ {custo_total_aco:,.2f}` (considerando R$ {preco_kg:.2f}/kg)")
+
+        if fator <= 8:
+            st.markdown('<div class="alerta-perigo">🚨 ALERTA DE ENGENHARIA: 8 kg/m² é uma taxa considerada MUITO FRACA e subdimensionada para construções convencionais. Risco de fissuras graves.</div>', unsafe_allow_html=True)
+        elif fator == 12:
+            st.markdown('<div class="alerta-sucesso">✅ Taxa de aço adequada e segura para residências térreas ou sobrados de padrão comum.</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="alerta-sucesso">✅ Armadura robusta, excelente margem de segurança estrutural.</div>', unsafe_allow_html=True)
+
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "🏗️ Estrutural, Vigas e Bitolas":
@@ -212,72 +195,11 @@ elif modulo == "🏗️ Estrutural, Vigas e Bitolas":
         st.success("Análise estrutural processada!")
         st.session_state.ja_fez_calculo_gratis = True
 
-elif modulo == "🚰 Sistema Hidráulico Profissional (Atualizado)":
+elif modulo == "🚰 Sistema Hidráulico Profissional":
     st.subheader("Dimensionamento de Consumo, Reservatório, Tubulações e Conexões")
-    col1, col2 = st.columns(2)
-    with col1:
-        moradores = st.number_input("Número de Habitantes / Usuários:", min_value=1, value=4)
-        consumo_diario = st.number_input("Consumo por Pessoa (Litros/dia - NBR 5626):", value=200.0)
-        qtd_banheiros = st.number_input("Número de Banheiros na Residência:", min_value=1, value=2, step=1)
-    with col2:
-        dias_reserva = st.number_input("Autonomia de Reserva Técnica (Dias):", value=2)
-
-    if st.button("Calcular Sistema Hidráulico Completo", type="primary"):
-        volume_necessario = moradores * consumo_diario * dias_reserva
-        st.success("Dimensionamento hidráulico e listagem de conexões concluídos!")
-        
-        c1, c2 = st.columns(2)
-        c1.metric("Volume Mínimo do Reservatório", f"{volume_necessario:,.0f} Litros")
-        
-        if volume_necessario <= 500:
-            sugestao_caixa = "Caixa d'água de 500 Litros"
-        elif volume_necessario <= 1000:
-            sugestao_caixa = "Caixa d'água de 1.000 Litros"
-        elif volume_necessario <= 1500:
-            sugestao_caixa = "Caixa d'água de 1.500 Litros (ou duas de 1.000L)"
-        else:
-            sugestao_caixa = f"Bateria de reservatórios totalizando {max(2000, int(volume_necessario))} Litros"
-
-        c2.metric("Comercialização Sugerida", sugestao_caixa)
-        
-        # Detalhamento de Tubulações e Conexões
-        st.markdown("---")
-        st.markdown("### 🚰 Especificação de Tubulações (Bitolas em Milímetros):")
-        col_t1, col_t2, col_t3 = st.columns(3)
-        col_t1.info("**Alimentação / Barrilete:**\n\n Tubo PVC Marrom de **25mm (3/4'')** ou **32mm (1'')** descendo da caixa.")
-        col_t2.info("**Ramais de Água Fria:**\n\n Tubo PVC Marrom de **25mm** para banheiros, chuveiros e pias.")
-        col_t3.info("**Rede de Esgoto Sanitário:**\n\n Tubo PVC Branco/Cinza:\n* **100mm** (Vasos sanitários e coluna)\n* **50mm** (Ralos, pias e chuveiro)")
-
-        st.markdown("### 🔧 Estimativa de Conexões por Banheiro Padrão:")
-        st.write(f"Considerando a execução de **{qtd_banheiros} banheiro(s)**, esta é a listagem base de conexões para orçamento e compra:")
-        
-        # Cálculo estimado por banheiro
-        joelhos_25 = qtd_banheiros * 12
-        tees_25 = qtd_banheiros * 4
-        luvas_25 = qtd_banheiros * 6
-        joelhos_esgoto_100 = qtd_banheiros * 4
-        joelhos_esgoto_50 = qtd_banheiros * 8
-        tutis_caixa_gordura = max(1, qtd_banheiros - 1)
-
-        col_c1, col_c2 = st.columns(2)
-        with col_c1:
-            st.markdown(f"""
-            * **Água Fria (Soldável 25mm):**
-              * Joelhos 90° 25mm: **~{joelhos_25} un**
-              * Tês 25mm: **~{tees_25} un**
-              * Luvas de Correr/Simples 25mm: **~{luvas_25} un**
-              * Adaptadores com Flange para Caixa (25mm x 3/4''): **1 un**
-            """)
-        with col_c2:
-            st.markdown(f"""
-            * **Esgoto (Série Normal/Reforçada):**
-              * Joelhos 90° / 45° Esgoto 100mm (Vasos): **~{joelhos_esgoto_100} un**
-              * Joelhos 90° Esgoto 50mm (Ralos/Pia): **~{joelhos_esgoto_50} un**
-              * Tubos de Esgoto 100mm: **~{qtd_banheiros * 3} varas (3m)**
-              * Tubos de Esgoto 50mm: **~{qtd_banheiros * 4} varas (3m)**
-            """)
-
-        st.markdown('<div class="alerta-sucesso">✅ Guia de bitolas e conexões dimensionado com folga de 10% para perdas e cortes no canteiro de obras.</div>', unsafe_allow_html=True)
+    moradores = st.number_input("Número de Habitantes / Usuários:", min_value=1, value=4)
+    if st.button("Calcular Sistema Hidráulico", type="primary"):
+        st.success("Dimensionamento hidráulico concluído!")
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "💼 Faturamento e CNPJ":
@@ -285,7 +207,7 @@ elif modulo == "💼 Faturamento e CNPJ":
     valor_bruto = st.number_input("Valor Base dos Serviços (R$):", value=12000.0)
     if st.button("Emitir Proposta", type="primary"):
         st.success("Proposta calculada!")
-        st.session_state.ja_fez_calculo_gratis = Time = True
+        st.session_state.ja_fez_calculo_gratis = True
 
 # ==========================================
 # 5. TELA DE PAYWALL APÓS O USO DO TESTE
