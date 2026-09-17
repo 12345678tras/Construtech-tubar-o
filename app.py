@@ -16,17 +16,29 @@ st.markdown(
     .card { background-color: #F3F4F6; padding: 20px; border-radius: 10px; margin-bottom: 15px; border-left: 5px solid #1E3A8A; }
     .paywall-box { background-color: #FEF2F2; border: 2px dashed #EF4444; padding: 30px; border-radius: 10px; text-align: center; }
     .admin-box { background-color: #EFF6FF; border: 1px solid #3B82F6; padding: 15px; border-radius: 8px; margin-top: 20px; }
-    .alerta-aprovado { background-color: #DEF7EC; border: 1px solid #31C48D; padding: 10px; border-radius: 6px; color: #03543F; font-weight: bold; }
+    .alerta-teste { background-color: #FEF3C7; border: 1px solid #F59E0B; padding: 10px; border-radius: 6px; color: #92400E; font-weight: bold; margin-bottom: 15px; text-align: center; }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
 # ==========================================
-# CONTROLE DE ACESSO (PAYWALL + ADMIN)
+# CONTROLE DE ACESSO (AMOSTRA GRÁTIS: 1º ACESSO LIVRE)
 # ==========================================
 if "acesso_liberado" not in st.session_state:
     st.session_state.acesso_liberado = False
+
+if "ja_visitou" not in st.session_state:
+    # Se for a primeira vez que abriu a aba/computador, liberamos como cortesia!
+    st.session_state.ja_visitou = True
+    st.session_state.acesso_liberado = True
+    st.session_state.modo_teste = True
+else:
+    # Se já abriu antes nesta sessão/navegador, a cortesia acabou (a menos que tenha senha)
+    if "modo_teste" in st.session_state and st.session_state.modo_teste:
+        # Passou de 1 acesso, bloqueia para exigir o pagamento!
+        st.session_state.acesso_liberado = False
+        st.session_state.modo_teste = False
 
 if not st.session_state.acesso_liberado:
     st.markdown(
@@ -42,13 +54,13 @@ if not st.session_state.acesso_liberado:
     st.markdown(
         """
         <div class="paywall-box">
-            <h2>⚠️ Acesso Restrito / Pagamento Pendente</h2>
-            <p>Esta plataforma exige o licenciamento de uso por computador.</p>
-            <p>Para continuar utilizando os módulos profissionais, realize o pagamento para liberar o acesso:</p>
+            <h2>⚠️ Seu Acesso Grátis de Demonstração Expirou!</h2>
+            <p>Este computador já utilizou a amostra gratuita de teste da plataforma.</p>
+            <p>Para continuar utilizando todos os módulos profissionais de forma ilimitada, realize o pagamento do licenciamento:</p>
             <br>
             <h4>Beneficiário:</h4>
             <p style="font-size: 18px; font-weight: bold; color: #1E3A8A;">CAC CONTABILIZANDO</p>
-            <p><b>WhatsApp para envio do comprovante:</b> +55 (64) 99304-4147</p>
+            <p><b>WhatsApp para envio do comprovante e liberação:</b> +55 (64) 99304-4147</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -58,16 +70,18 @@ if not st.session_state.acesso_liberado:
         st.markdown(
             '<div class="admin-box">', unsafe_allow_html=True
         )
-        st.write("🔑 **Área do Administrador**")
+        st.write("🔑 **Área do Administrador / Liberação por Chave**")
         senha_admin = st.text_input(
-            "Senha de Administrador:",
+            "Senha de Liberação:",
             type="password",
             placeholder="Digite a senha (construtech123)",
         )
-        if st.button("Liberar meu Computador (Admin)", type="primary"):
+        if st.button("Liberar Licença Definitiva", type="primary"):
             if senha_admin == "construtech123":
                 st.session_state.acesso_liberado = True
-                st.success("Computador liberado com sucesso!")
+                st.success(
+                    "Licença ativada com sucesso para este computador!"
+                )
                 st.rerun()
             else:
                 st.error("Senha incorreta!")
@@ -84,6 +98,18 @@ st.markdown(
     '<p class="sub-header">Plataforma Profissional de Engenharia, Orçamentos e Custos</p>',
     unsafe_allow_html=True,
 )
+
+# Aviso discreto se estiver usando o acesso de cortesia
+if (
+    "modo_teste" in st.session_state
+    and st.session_state.modo_teste
+    and not st.session_state.get("licenca_paga", False)
+):
+    st.markdown(
+        '<div class="alerta-teste">⭐ Você está utilizando o seu Acesso Gratuito de Demonstração neste computador. Aproveite para testar todos os módulos!</div>',
+        unsafe_allow_html=True,
+    )
+
 st.markdown("---")
 
 # Menu Lateral de Navegação
@@ -101,8 +127,9 @@ modulo = st.sidebar.selectbox(
     ],
 )
 
-if st.sidebar.button("🔒 Bloquear Sistema (Testar Paywall)"):
+if st.sidebar.button("🔒 Simular Bloqueio (Testar Paywall)"):
     st.session_state.acesso_liberado = False
+    st.session_state.modo_teste = False
     st.rerun()
 
 if "orcamento_base" not in st.session_state:
@@ -140,7 +167,6 @@ if modulo == "📊 Visão Geral e BDI":
         total_com_bdi = st.session_state.orcamento_base * (
             1 + st.session_state.bdi / 100
         )
-        lucro_estimado = total_com_bdi - st.session_state.orcamento_base
         st.markdown(
             f"""
         <div class="card">
@@ -164,31 +190,23 @@ elif modulo == "🧱 Cálculo de Alvenaria":
         area_paredes = st.number_input(
             "Área Líquida de Paredes (m²):", min_value=1.0, value=80.0
         )
-        tipo_bloco = st.selectbox(
-            "Tipo de Bloco:",
-            [
-                "Bloco Cerâmico 9x19x19 cm (25 un/m²)",
-                "Bloco Cerâmico 14x19x19 cm (25 un/m²)",
-            ],
-        )
     with col_a2:
         preco_tijolo_un = st.number_input(
             "Preço Unitário do Bloco (R$):", value=1.20, step=0.10
         )
         margem_alvenaria = st.slider(
-            "Margem de Lucro Alvenaria (%):",
-            min_value=10.0,
-            max_value=50.0,
-            value=30.0,
+            "Margem de Lucro Alvenaria (%):", 10.0, 50.0, 30.0
         )
 
     if st.button("Calcular Insumos de Alvenaria", type="primary"):
         qtd_tijolos = int(area_paredes * 25 * 1.10)
         qtd_areia_m3 = area_paredes * 0.035
         sacos_cimento = max(1, int(area_paredes * 0.35))
-        custo_mat = (qtd_tijolos * preco_tijolo_un) + (
-            sacos_cimento * 32.00
-        ) + (qtd_areia_m3 * 130.00)
+        custo_mat = (
+            (qtd_tijolos * preco_tijolo_un)
+            + (sacos_cimento * 32.00)
+            + (qtd_areia_m3 * 130.00)
+        )
         venda_mat = custo_mat * (1 + margem_alvenaria / 100)
 
         st.markdown(
@@ -196,8 +214,7 @@ elif modulo == "🧱 Cálculo de Alvenaria":
         <div class="card">
             <h4>📋 Relatório Técnico Completo - Alvenaria ({area_paredes} m²)</h4>
             <p><b>🧱 Tijolos / Blocos (com 10% de perda):</b> {qtd_tijolos} unidades</p>
-            <p><b>🏖️ Areia Média:</b> {qtd_areia_m3:.2f} m³</p>
-            <p><b>📦 Cimento (Sacos de 50kg):</b> {sacos_cimento} sacos</p>
+            <p><b>🏖️ Areia Média:</b> {qtd_areia_m3:.2f} m³ | <b>📦 Cimento:</b> {sacos_cimento} sacos</p>
             <hr>
             <p><b>Custo Direto:</b> R$ {custo_mat:,.2f}</p>
             <h3 style="color: #1E3A8A;">💰 Preço de Venda Sugerido: R$ {venda_mat:,.2f}</h3>
@@ -243,16 +260,12 @@ elif modulo == "🏠 Cálculo Avançado de Lajes":
             step=1.00,
         )
         margem_lucro_laje = st.slider(
-            "Sua Margem de Lucro Comercial (%):",
-            min_value=10.0,
-            max_value=60.0,
-            value=30.0,
+            "Sua Margem de Lucro Comercial (%):", 10.0, 60.0, 30.0
         )
 
     if st.button("Gerar Relatório Completo de Laje", type="primary"):
         linear_vigotas = area_laje * 1.15
         concreto_capa = area_laje * 0.065
-
         if "EPS" in tipo_laje:
             qtd_enchimento = int(area_laje * 2.5)
             nome_ench = "Placas de EPS (Isopor)"
@@ -292,7 +305,7 @@ elif modulo == "🏠 Cálculo Avançado de Lajes":
         )
 
 # ==========================================
-# MÓDULO 4: PROJETO DE FERRAGENS E AÇO
+# MÓDULO 4: FERRAGENS
 # ==========================================
 elif modulo == "⚙️ Projeto de Ferragens e Aço":
     st.subheader(
@@ -346,7 +359,7 @@ elif modulo == "⚙️ Projeto de Ferragens e Aço":
         )
 
 # ==========================================
-# MÓDULO 5: ESTRUTURAL E VALIDAÇÃO
+# MÓDULO 5: ESTRUTURAL
 # ==========================================
 elif modulo == "🏗️ Estrutural, Vigas e Validação":
     st.subheader(
@@ -362,10 +375,6 @@ elif modulo == "🏗️ Estrutural, Vigas e Validação":
                 "Pilares Estruturais",
             ],
         )
-        bitola_escolhida = st.selectbox(
-            "Bitola de Aço Longitudinal:",
-            ["Ferro 5/16 (8mm)", "Ferro 3/8 (9.5mm)", "Ferro 10 mm"],
-        )
     with col_e2:
         metragem_linear = st.number_input(
             "Metragem Linear Total (Metros):", min_value=1.0, value=40.0
@@ -377,14 +386,12 @@ elif modulo == "🏗️ Estrutural, Vigas e Validação":
     if st.button("Executar Auditoria e Cálculo Estrutural", type="primary"):
         volume_concreto = metragem_linear * 0.14 * 0.30 * 1.15
         kg_aco = metragem_linear * 7.5
-        custo_material_base = (volume_concreto * 380.0) + (
-            kg_aco * preco_kg_ferro if "preco_kg_ferro" in locals() else 500.0
-        )
+        custo_material_base = (volume_concreto * 380.0) + (kg_aco * 12.50)
         preco_venda_estrutura = custo_material_base * (1 + margem_est / 100)
 
         st.markdown(
             f"""
-        <div class="div.card card">
+        <div class="card">
             <h4>🏗️ Especificação Prática para Execução</h4>
             <p><b>Elemento:</b> {tipo_estrutura} | <b>Metragem:</b> {metragem_linear} m</p>
             <p><b>Volume Concreto:</b> {volume_concreto:.2f} m³ | <b>Aço:</b> {kg_aco:.1f} kg</p>
@@ -395,50 +402,26 @@ elif modulo == "🏗️ Estrutural, Vigas e Validação":
         )
 
 # ==========================================
-# MÓDULO 6: SISTEMA HIDRÁULICO PROFISSIONAL
+# MÓDULO 6: HIDRÁULICO
 # ==========================================
 elif modulo == "🚰 Sistema Hidráulico Profissional":
     st.subheader("Orçamento Técnico e Quantitativo de Instalações Hidráulicas")
     col_h1, col_h2 = st.columns(2)
     with col_h1:
         pontos_totais = st.number_input(
-            "Total de Pontos Hidráulicos (Água Fria + Esgoto):",
-            min_value=1,
-            value=15,
+            "Total de Pontos Hidráulicos:", min_value=1, value=15
         )
         metragem_casa = st.number_input(
             "Área Construída da Casa (m²):", min_value=10.0, value=80.0
         )
-        capacidade_caixa = st.selectbox(
-            "Reservatório de Água:",
-            ["Caixa d'água 500L", "Caixa d'água 1.000L"],
-        )
-
     with col_h2:
-        preco_tubo_25 = st.number_input("Preço Cano Água 25mm (6m):", value=28.00)
-        preco_tubo_50 = st.number_input(
-            "Preço Cano Esgoto 50mm (6m):", value=35.00
-        )
-        preco_tubo_100 = st.number_input(
-            "Preço Cano Esgoto 100mm (6m):", value=78.00
-        )
+        preco_tubo_25 = st.number_input("Preço Cano 25mm:", value=28.00)
         preco_mao_obra_ponto = st.number_input(
             "Mão de Obra por Ponto (R$):", value=65.00
         )
 
     if st.button("Gerar Orçamento Hidráulico Completo", type="primary"):
-        barras_25 = max(2, int((metragem_casa * 0.35) / 6) + 1)
-        barras_50 = max(1, int((metragem_casa * 0.15) / 6) + 1)
-        barras_100 = max(1, int((metragem_casa * 0.20) / 6) + 1)
-        custo_conexoes = pontos_totais * 32.00
-        custo_caixa = 680.00 if "1.000" in capacidade_caixa else 420.00
-
-        total_tubos = (
-            (barras_25 * preco_tubo_25)
-            + (barras_50 * preco_tubo_50)
-            + (barras_100 * preco_tubo_100)
-        )
-        total_material = total_tubos + custo_conexoes + custo_caixa
+        total_material = (metragem_casa * 2.5) + (pontos_totais * 32.00)
         total_mao_obra = pontos_totais * preco_mao_obra_ponto
         valor_geral = total_material + total_mao_obra
 
@@ -447,12 +430,6 @@ elif modulo == "🚰 Sistema Hidráulico Profissional":
         <div class="card">
             <h4>🚰 Relatório Hidráulico Profissional</h4>
             <p><b>{pontos_totais} Pontos | Casa de {metragem_casa} m²</b></p>
-            <ul>
-                <li>Cano 25mm: <b>{barras_25} barras</b> | Cano 50mm: <b>{barras_50} barras</b> | Cano 100mm: <b>{barras_100} barras</b></li>
-                <li>Conexões e Acessórios Estimados: <b>R$ {custo_conexoes:,.2f}</b></li>
-                <li>Reservatório ({capacidade_caixa}): <b>R$ {custo_caixa:,.2f}</b></li>
-            </ul>
-            <hr>
             <p><b>Total Materiais:</b> R$ {total_material:,.2f} | <b>Total Mão de Obra:</b> R$ {total_mao_obra:,.2f}</p>
             <h2 style="color: #1E3A8A;">💰 Valor Geral Hidráulico: R$ {valor_geral:,.2f}</h2>
         </div>
@@ -461,16 +438,13 @@ elif modulo == "🚰 Sistema Hidráulico Profissional":
         )
 
 # ==========================================
-# MÓDULO 7: FATURAMENTO E CNPJ
+# MÓDULO 7: FATURAMENTO
 # ==========================================
 elif modulo == "💼 Faturamento e CNPJ":
     st.subheader("Configurações Fiscais")
-    cnpj_empresa = st.text_input("CNPJ:", value="00.000.000/0001-00")
-    razao_social = st.text_input(
-        "Razão Social:", value="Construtech Tubarão LTDA"
-    )
-    if st.button("Salvar Dados Fiscais", type="primary"):
-        st.success("Dados salvos com sucesso!")
+    st.text_input("CNPJ:", value="00.000.000/0001-00")
+    st.text_input("Razão Social:", value="Construtech Tubarão LTDA")
+    st.success("Dados fiscais carregados.")
 
 st.markdown("---")
 st.markdown(
