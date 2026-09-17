@@ -43,6 +43,8 @@ orcamento_base = st.number_input("Valor Base Estimado (R$):", min_value=0.0, val
 if st.button("Calcular Viabilidade e Custos"):
     bdi = 0.25  # 25% de BDI padrão
     valor_total = orcamento_base * (1 + bdi)
+    st.success("Cálculo realizado com sucesso!")
+
     
     st.markdown(f"""
         <div class="card-resultado">
@@ -52,4 +54,3 @@ if st.button("Calcular Viabilidade e Custos"):
             <p><b>Valor Total Sugerido com BDI:</b> R$ {valor_total:,.2f}</p>
         </div>
     """, unsafe_allow_html=True)
-    st.success("Cálculo realizado com sucesso!")
