@@ -28,9 +28,9 @@ st.markdown(
 if "licenca_global_liberada" not in st.session_state:
     st.session_state.licenca_global_liberada = False
 
-# Dicionário para controlar os usos gratuitos por módulo individualmente
-if "usos_gratuitos" not in st.session_state:
-    st.session_state.usos_gratuitos = {}
+# Dicionário para controlar quantas vezes o botão de cálculo foi apertado em cada módulo
+if "contador_calculos" not in st.session_state:
+    st.session_state.contador_calculos = {}
 
 # Menu Lateral de Navegação
 st.sidebar.title("Navegação de Módulos")
@@ -61,25 +61,25 @@ if st.sidebar.button("Desbloquear Sistema Inteiro"):
     else:
         st.sidebar.error("Senha incorreta!")
 
-if st.sidebar.button("🔒 Bloquear / Testar Paywall"):
+if st.sidebar.button("🔒 Bloquear / Resetar Testes"):
     st.session_state.licenca_global_liberada = False
-    st.session_state.usos_gratuitos = {}
+    st.session_state.contador_calculos = {}
     st.rerun()
 
 
-# Função para verificar se o usuário pode usar o módulo atual de graça ou se precisa pagar
+# Função para verificar se o usuário já ultrapassou o limite gratuito (1 cálculo livre, bloqueia no 2º)
 def verificar_acesso_modulo(nome_modulo):
     if st.session_state.licenca_global_liberada:
         return True
 
-    if nome_modulo not in st.session_state.usos_gratuitos:
-        st.session_state.usos_gratuitos[nome_modulo] = 0
+    if nome_modulo not in st.session_state.contador_calculos:
+        st.session_state.contador_calculos[nome_modulo] = 0
 
-    # Permite 1 uso gratuito por módulo
-    if st.session_state.usos_gratuitos[nome_modulo] < 1:
-        return True
+    # Se o contador for maior ou igual a 1, significa que já usou o grátis e tentou o segundo
+    if st.session_state.contador_calculos[nome_modulo] > 1:
+        return False
 
-    return False
+    return True
 
 
 # ==========================================
@@ -93,7 +93,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Verifica se o módulo atual está bloqueado
+# Verifica se o módulo atual deve exibir o paywall
 liberado_atual = verificar_acesso_modulo(modulo)
 
 if not liberado_atual:
@@ -102,12 +102,8 @@ if not liberado_atual:
         f"""
         <div class="paywall-box">
             <h2>⚠️ Seu Acesso Gratuito neste Módulo ({modulo}) Expirou!</h2>
-            <p>Você já utilizou o seu cálculo gratuito nesta ferramenta específica.</p>
-            <p>Para continuar realizando cálculos ilimitados em todos os módulos, realize o licenciamento definitivo:</p>
-            <br>
-            <h4>Beneficiário:</h4>
-            <p style="font-size: 18px; font-weight: bold; color: #1E3A8A;">CAC CONTABILIZANDO</p>
-            <p><b>WhatsApp para envio do comprovante e liberação:</b> +55 (64) 99304-4147</p>
+            <p>Você já realizou o seu cálculo gratuito de demonstração nesta ferramenta.</p>
+            <p>Para continuar realizando cálculos ilimitados, digite a senha de liberação abaixo:</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -117,7 +113,7 @@ if not liberado_atual:
         st.markdown(
             '<div class="admin-box">', unsafe_allow_html=True
         )
-        st.write("🔑 **Área do Administrador / Liberação por Chave**")
+        st.write("🔑 **Área do Administrador / Liberação**")
 
         with st.form(key="form_admin_paywall"):
             senha_admin = st.text_input(
@@ -135,15 +131,15 @@ if not liberado_atual:
                     )
                     st.rerun()
                 else:
-                    st.error("Senha incorreta! (Lembre do 'h' em construtech123)")
+                    st.error("Senha incorreta!")
 
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# Aviso amigável caso seja o primeiro uso gratuito do módulo
+# Aviso amigável na tela
 if not st.session_state.licenca_global_liberada:
     st.markdown(
-        f'<div class="alerta-teste">⭐ Você está usando o seu <b>1º cálculo gratuito</b> no módulo: {modulo}. Aproveite!</div>',
+        f'<div class="alerta-teste">⭐ O primeiro cálculo no módulo <b>{modulo}</b> é totalmente gratuito para você testar e ver o resultado!</div>',
         unsafe_allow_html=True,
     )
 
@@ -181,9 +177,16 @@ if modulo == "📊 Visão Geral e BDI":
         )
 
     if st.button("Calcular Viabilidade e Venda", type="primary"):
-        st.session_state.usos_gratuitos[modulo] = (
-            st.session_state.usos_gratuitos.get(modulo, 0) + 1
-        )
+        if modulo not in st.session_state.contador_calculos:
+            st.session_state.contador_calculos[modulo] = 1
+        else:
+            st.session_state.contador_calculos[modulo] += 1
+        st.rerun()
+
+    if (
+        st.session_state.contador_calculos.get(modulo, 0) > 0
+        and st.session_state.licenca_global_liberada == False
+    ):
         total_com_bdi = st.session_state.orcamento_base * (
             1 + st.session_state.bdi / 100
         )
@@ -199,7 +202,6 @@ if modulo == "📊 Visão Geral e BDI":
         """,
             unsafe_allow_html=True,
         )
-        st.rerun()
 
 # ==========================================
 # MÓDULO 2: CÁLCULO DE ALVENARIA
@@ -220,9 +222,16 @@ elif modulo == "🧱 Cálculo de Alvenaria":
         )
 
     if st.button("Calcular Insumos de Alvenaria", type="primary"):
-        st.session_state.usos_gratuitos[modulo] = (
-            st.session_state.usos_gratuitos.get(modulo, 0) + 1
-        )
+        if modulo not in st.session_state.contador_calculos:
+            st.session_state.contador_calculos[modulo] = 1
+        else:
+            st.session_state.contador_calculos[modulo] += 1
+        st.rerun()
+
+    if (
+        st.session_state.contador_calculos.get(modulo, 0) > 0
+        and st.session_state.licenca_global_liberada == False
+    ):
         qtd_tijolos = int(area_paredes * 25 * 1.10)
         qtd_areia_m3 = area_paredes * 0.035
         sacos_cimento = max(1, int(area_paredes * 0.35))
@@ -246,7 +255,6 @@ elif modulo == "🧱 Cálculo de Alvenaria":
         """,
             unsafe_allow_html=True,
         )
-        st.rerun()
 
 # ==========================================
 # MÓDULO 3: CÁLCULO DE LAJES
@@ -289,9 +297,16 @@ elif modulo == "🏠 Cálculo Avançado de Lajes":
         )
 
     if st.button("Gerar Relatório Completo de Laje", type="primary"):
-        st.session_state.usos_gratuitos[modulo] = (
-            st.session_state.usos_gratuitos.get(modulo, 0) + 1
-        )
+        if modulo not in st.session_state.contador_calculos:
+            st.session_state.contador_calculos[modulo] = 1
+        else:
+            st.session_state.contador_calculos[modulo] += 1
+        st.rerun()
+
+    if (
+        st.session_state.contador_calculos.get(modulo, 0) > 0
+        and st.session_state.licenca_global_liberada == False
+    ):
         linear_vigotas = area_laje * 1.15
         concreto_capa = area_laje * 0.065
         if "EPS" in tipo_laje:
@@ -331,7 +346,6 @@ elif modulo == "🏠 Cálculo Avançado de Lajes":
         """,
             unsafe_allow_html=True,
         )
-        st.rerun()
 
 # ==========================================
 # MÓDULO 4: FERRAGENS
@@ -367,9 +381,16 @@ elif modulo == "⚙️ Projeto de Ferragens e Aço":
         )
 
     if st.button("Gerar Especificação e Orçamento de Ferragens", type="primary"):
-        st.session_state.usos_gratuitos[modulo] = (
-            st.session_state.usos_gratuitos.get(modulo, 0) + 1
-        )
+        if modulo not in st.session_state.contador_calculos:
+            st.session_state.contador_calculos[modulo] = 1
+        else:
+            st.session_state.contador_calculos[modulo] += 1
+        st.rerun()
+
+    if (
+        st.session_state.contador_calculos.get(modulo, 0) > 0
+        and st.session_state.licenca_global_liberada == False
+    ):
         kg_total_aco = (
             450.0
             if "Padrão" in porte_obra
@@ -389,7 +410,6 @@ elif modulo == "⚙️ Projeto de Ferragens e Aço":
         """,
             unsafe_allow_html=True,
         )
-        st.rerun()
 
 # ==========================================
 # MÓDULO 5: ESTRUTURAL
@@ -417,9 +437,16 @@ elif modulo == "🏗️ Estrutural, Vigas e Validação":
         )
 
     if st.button("Executar Auditoria e Cálculo Estrutural", type="primary"):
-        st.session_state.usos_gratuitos[modulo] = (
-            st.session_state.usos_gratuitos.get(modulo, 0) + 1
-        )
+        if modulo not in st.session_state.contador_calculos:
+            st.session_state.contador_calculos[modulo] = 1
+        else:
+            st.session_state.contador_calculos[modulo] += 1
+        st.rerun()
+
+    if (
+        st.session_state.contador_calculos.get(modulo, 0) > 0
+        and st.session_state.licenca_global_liberada == False
+    ):
         volume_concreto = metragem_linear * 0.14 * 0.30 * 1.15
         kg_aco = metragem_linear * 7.5
         custo_material_base = (volume_concreto * 380.0) + (kg_aco * 12.50)
@@ -436,7 +463,6 @@ elif modulo == "🏗️ Estrutural, Vigas e Validação":
         """,
             unsafe_allow_html=True,
         )
-        st.rerun()
 
 # ==========================================
 # MÓDULO 6: HIDRÁULICO
@@ -458,9 +484,16 @@ elif modulo == "🚰 Sistema Hidráulico Profissional":
         )
 
     if st.button("Gerar Orçamento Hidráulico Completo", type="primary"):
-        st.session_state.usos_gratuitos[modulo] = (
-            st.session_state.usos_gratuitos.get(modulo, 0) + 1
-        )
+        if modulo not in st.session_state.contador_calculos:
+            st.session_state.contador_calculos[modulo] = 1
+        else:
+            st.session_state.contador_calculos[modulo] += 1
+        st.rerun()
+
+    if (
+        st.session_state.contador_calculos.get(modulo, 0) > 0
+        and st.session_state.licenca_global_liberada == False
+    ):
         total_material = (metragem_casa * 2.5) + (pontos_totais * 32.00)
         total_mao_obra = pontos_totais * preco_mao_obra_ponto
         valor_geral = total_material + total_mao_obra
@@ -476,7 +509,6 @@ elif modulo == "🚰 Sistema Hidráulico Profissional":
         """,
             unsafe_allow_html=True,
         )
-        st.rerun()
 
 # ==========================================
 # MÓDULO 7: FATURAMENTO
