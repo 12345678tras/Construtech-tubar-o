@@ -23,23 +23,17 @@ st.markdown(
 )
 
 # ==========================================
-# CONTROLE DE ACESSO (AMOSTRA GRÁTIS: 1º ACESSO LIVRE)
+# CONTROLE DE ACESSO (AMOSTRA GRÁTIS / ADMIN)
 # ==========================================
 if "acesso_liberado" not in st.session_state:
     st.session_state.acesso_liberado = False
 
 if "ja_visitou" not in st.session_state:
-    # Se for a primeira vez que abriu a aba/computador, liberamos como cortesia!
     st.session_state.ja_visitou = True
     st.session_state.acesso_liberado = True
     st.session_state.modo_teste = True
-else:
-    # Se já abriu antes nesta sessão/navegador, a cortesia acabou (a menos que tenha senha)
-    if "modo_teste" in st.session_state and st.session_state.modo_teste:
-        # Passou de 1 acesso, bloqueia para exigir o pagamento!
-        st.session_state.acesso_liberado = False
-        st.session_state.modo_teste = False
 
+# Se não estiver liberado, exibe a tela de bloqueio
 if not st.session_state.acesso_liberado:
     st.markdown(
         '<p class="main-header" style="text-align: center;">🏗️ Construtech Tubarão</p>',
@@ -71,20 +65,26 @@ if not st.session_state.acesso_liberado:
             '<div class="admin-box">', unsafe_allow_html=True
         )
         st.write("🔑 **Área do Administrador / Liberação por Chave**")
-        senha_admin = st.text_input(
-            "Senha de Liberação:",
-            type="password",
-            placeholder="Digite a senha (construtech123)",
-        )
-        if st.button("Liberar Licença Definitiva", type="primary"):
-            if senha_admin == "construtech123":
-                st.session_state.acesso_liberado = True
-                st.success(
-                    "Licença ativada com sucesso para este computador!"
-                )
-                st.rerun()
-            else:
-                st.error("Senha incorreta!")
+
+        # Usando um formulário para processar a senha perfeitamente sem refresh prematuro
+        with st.form(key="form_admin"):
+            senha_admin = st.text_input(
+                "Senha de Liberação:",
+                type="password",
+                placeholder="Digite a senha (construtech123)",
+            )
+            botao_enviar = st.form_submit_button("Liberar Licença Definitiva")
+
+            if botao_enviar:
+                if senha_admin == "construtech123":
+                    st.session_state.acesso_liberado = True
+                    st.success(
+                        "Licença ativada com sucesso! Carregando sistema..."
+                    )
+                    st.rerun()
+                else:
+                    st.error("Senha incorreta!")
+
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
@@ -99,7 +99,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Aviso discreto se estiver usando o acesso de cortesia
 if (
     "modo_teste" in st.session_state
     and st.session_state.modo_teste
