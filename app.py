@@ -33,6 +33,10 @@ if "licenca_global_liberada" not in st.session_state:
 if "ja_fez_calculo_gratis" not in st.session_state:
     st.session_state.ja_fez_calculo_gratis = False
 
+# Variável para controlar se acabou de rodar o cálculo gratuito nesta execução
+if "mostrar_resultado_gratis" not in st.session_state:
+    st.session_state.mostrar_resultado_gratis = False
+
 # Menu Lateral de Navegação
 st.sidebar.title("Navegação de Módulos")
 modulo = st.sidebar.selectbox(
@@ -57,6 +61,9 @@ senha_sidebar = st.sidebar.text_input(
 if st.sidebar.button("Desbloquear Sistema Inteiro"):
     if senha_sidebar == "construtech123":
         st.session_state.licenca_global_liberada = True
+        st.session_state.ja_fez_calculo_gratis = (
+            False  # Reseta a trava ao liberar
+        )
         st.sidebar.success("Licença definitiva ativada!")
         st.rerun()
     else:
@@ -65,17 +72,8 @@ if st.sidebar.button("Desbloquear Sistema Inteiro"):
 if st.sidebar.button("🔒 Bloquear / Resetar Testes"):
     st.session_state.licenca_global_liberada = False
     st.session_state.ja_fez_calculo_gratis = False
+    st.session_state.mostrar_resultado_gratis = False
     st.rerun()
-
-
-# Função para verificar se o usuário já gastou o cálculo gratuito
-def verificar_acesso_global():
-    if st.session_state.licenca_global_liberada:
-        return True
-    if st.session_state.ja_fez_calculo_gratis:
-        return False
-    return True
-
 
 # ==========================================
 # 3. CABEÇALHO DA APLICAÇÃO
@@ -88,12 +86,24 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ==========================================
-# 4. SISTEMA DE PAYWALL E INFINITEPAY
-# ==========================================
-liberado_atual = verificar_acesso_global()
+if "orcamento_base" not in st.session_state:
+    st.session_state.orcamento_base = 50000.0
+if "bdi" not in st.session_state:
+    st.session_state.bdi = 25.0
+if "cliente" not in st.session_state:
+    st.session_state.cliente = "Obra Residencial Exemplo"
 
-if not liberado_atual:
+# ==========================================
+# 4. MÓDULOS DO SISTEMA
+# ==========================================
+
+# Se ele já usou o teste e tentou fazer algo novo, interceptamos aqui com o Paywall
+bloqueado = (
+    not st.session_state.licenca_global_liberada
+    and st.session_state.ja_fez_calculo_gratis
+)
+
+if bloqueado:
     st.markdown("---")
     st.markdown(
         """
@@ -141,79 +151,87 @@ if not liberado_atual:
             if botao_enviar:
                 if senha_admin == "construtech123":
                     st.session_state.licenca_global_liberada = True
+                    st.session_state.ja_fez_calculo_gratis = False
                     st.success("Licença ativada com sucesso!")
                     st.rerun()
                 else:
                     st.error("Senha incorreta!")
 
-    st.stop()
-
-# Aviso amigável do teste grátis ativo
-if not st.session_state.licenca_global_liberada:
-    st.markdown(
-        '<div class="alerta-teste">⭐ Você está usando a sua <b>única demonstração gratuita</b>. Aproveite para testar!</div>',
-        unsafe_allow_html=True,
-    )
-
-st.markdown("---")
-
-if "orcamento_base" not in st.session_state:
-    st.session_state.orcamento_base = 50000.0
-if "bdi" not in st.session_state:
-    st.session_state.bdi = 25.0
-if "cliente" not in st.session_state:
-    st.session_state.cliente = "Obra Residencial Exemplo"
-
-# ==========================================
-# 5. MÓDULOS DO SISTEMA
-# ==========================================
-
-if modulo == "📊 Visão Geral e BDI":
-    st.subheader("Painel de Controle e Viabilidade Comercial")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.session_state.cliente = st.text_input(
-            "Nome do Projeto / Cliente:", value=st.session_state.cliente
-        )
-        st.session_state.orcamento_base = st.number_input(
-            "Custo Direto Total Estimado (R$):",
-            min_value=0.0,
-            value=st.session_state.orcamento_base,
-            step=1000.0,
-        )
-    with col2:
-        st.session_state.bdi = st.slider(
-            "Taxa de BDI Aplicada (%):", 0.0, 50.0, 25.0
+else:
+    # Aviso amigável do teste grátis ativo (se ainda não gastou)
+    if not st.session_state.licenca_global_liberada:
+        st.markdown(
+            '<div class="alerta-teste">⭐ Você está usando a sua <b>única demonstração gratuita</b>. Aproveite para testar!</div>',
+            unsafe_allow_html=True,
         )
 
-    if st.button("Calcular Viabilidade e Venda", type="primary"):
-        st.session_state.ja_fez_calculo_gratis = True
-        st.rerun()
+    st.markdown("---")
 
-elif modulo == "🧱 Cálculo de Alvenaria":
-    st.subheader("Dimensionamento Técnico de Alvenaria")
-    area_paredes = st.number_input(
-        "Área Líquida de Paredes (m²):", min_value=1.0, value=80.0
-    )
-    preco_tijolo_un = st.number_input(
-        "Preço Unitário do Bloco (R$):", value=1.20, step=0.10
-    )
+    if modulo == "📊 Visão Geral e BDI":
+        st.subheader("Painel de Controle e Viabilidade Comercial")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.session_state.cliente = st.text_input(
+                "Nome do Projeto / Cliente:", value=st.session_state.cliente
+            )
+            st.session_state.orcamento_base = st.number_input(
+                "Custo Direto Total Estimado (R$):",
+                min_value=0.0,
+                value=st.session_state.orcamento_base,
+                step=1000.0,
+            )
+        with col2:
+            st.session_state.bdi = st.slider(
+                "Taxa de BDI Aplicada (%):", 0.0, 50.0, 25.0
+            )
 
-    if st.button("Calcular Insumos de Alvenaria", type="primary"):
-        st.session_state.ja_fez_calculo_gratis = True
-        st.rerun()
+        if st.button("Calcular Viabilidade e Venda", type="primary"):
+            # Marca que o teste grátis foi consumido
+            st.session_state.ja_fez_calculo_gratis = True
+            st.success("Cálculo realizado com sucesso (Demonstração Gratuita)!")
+            # Exemplo de resultado simples na tela
+            custo_total = st.session_state.orcamento_base * (
+                1 + st.session_state.bdi / 100
+            )
+            st.metric(
+                label="Preço de Venda Sugerido (com BDI)",
+                value=f"R$ {custo_total:,.2f}",
+            )
 
-elif modulo in [
-    "🏠 Cálculo Avançado de Lajes",
-    "⚙️ Projeto de Ferragens e Aço",
-    "🏗️ Estrutural, Vigas e Validação",
-    "🚰 Sistema Hidráulico Profissional",
-    "💼 Faturamento e CNPJ",
-]:
-    st.subheader(f"Painel do Módulo: {modulo}")
-    if st.button("Executar Simulação do Módulo", type="primary"):
-        st.session_state.ja_fez_calculo_gratis = True
-        st.rerun()
+    elif modulo == "🧱 Cálculo de Alvenaria":
+        st.subheader("Dimensionamento Técnico de Alvenaria")
+        area_paredes = st.number_input(
+            "Área Líquida de Paredes (m²):", min_value=1.0, value=80.0
+        )
+        preco_tijolo_un = st.number_input(
+            "Preço Unitário do Bloco (R$):", value=1.20, step=0.10
+        )
+
+        if st.button("Calcular Insumos de Alvenaria", type="primary"):
+            st.session_state.ja_fez_calculo_gratis = True
+            st.success("Insumos calculados com sucesso (Demonstração Gratuita)!")
+            tijolos_estimados = area_paredes * 35  # Exemplo de cálculo
+            custo_tijolos = tijolos_estimados * preco_tijolo_un
+            st.metric(
+                label="Quantidade Estimada de Blocos",
+                value=f"{tijolos_estimados:.0f} un",
+            )
+            st.metric(label="Custo Total de Blocos", value=f"R$ {custo_tijolos:,.2f}")
+
+    elif modulo in [
+        "🏠 Cálculo Avançado de Lajes",
+        "⚙️ Projeto de Ferragens e Aço",
+        "🏗️ Estrutural, Vigas e Validação",
+        "🚰 Sistema Hidráulico Profissional",
+        "💼 Faturamento e CNPJ",
+    ]:
+        st.subheader(f"Painel do Módulo: {modulo}")
+        if st.button("Executar Simulação do Módulo", type="primary"):
+            st.session_state.ja_fez_calculo_gratis = True
+            st.success("Simulação executada com sucesso (Demonstração Gratuita)!")
+            st.info(
+                "Resultados simulados para este módulo exibidos com sucesso."
+            )
 
 # Rodapé
 st.markdown("---")
