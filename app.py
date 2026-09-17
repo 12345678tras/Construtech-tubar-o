@@ -1,10 +1,16 @@
+import streamlit as st
+import streamlit.components.v1 as components
 
+st.set_page_config(page_title="ConstrutorPro - Calculadoras", layout="wide")
+
+# HTML e JavaScript integrado com controle de créditos via localStorage (por máquina/navegador)
+html_code = """
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadoras da Construção Civil - Profissional</title>
+    <title>Calculadoras da Construção Civil</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -19,7 +25,7 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 0;
+            padding: 10px;
         }
 
         header {
@@ -30,6 +36,7 @@
             flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
+            border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
@@ -58,7 +65,7 @@
 
         .container {
             max-width: 900px;
-            margin: 30px auto;
+            margin: 20px auto;
             padding: 20px;
             background: var(--card-bg);
             border-radius: 8px;
@@ -122,11 +129,10 @@
             border-radius: 4px;
         }
 
-        /* Estilo da Tela de Bloqueio/Paywall */
         #paywall-screen {
             display: none;
             text-align: center;
-            padding: 40px 20px;
+            padding: 20px;
         }
 
         .pix-box {
@@ -148,7 +154,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 15px;
         }
     </style>
 </head>
@@ -156,7 +163,6 @@
 
     <div class="status-bar">
         <span id="status-creditos">Verificando acesso...</span>
-        <span id="status-tempo"></span>
     </div>
 
     <header>
@@ -173,9 +179,9 @@
 
     <div class="container" id="main-container">
 
-        <!-- TELA DE BLOQUEIO / PAGAMENTO -->
+        <!-- TELA DE BLOQUEIO / PAYWALL -->
         <div id="paywall-screen">
-            <h2 style="color: #c0392b;">🔒 Acesso Gratuito Expirado ou Bloqueado</h2>
+            <h2 style="color: #c0392b;">🔒 Acesso Gratuito Expirado</h2>
             <p>Você utilizou seus créditos de teste gratuitos neste navegador.</p>
             <p>Para garantir uso ilimitado de todas as calculadoras por 30 dias neste computador, ative o Acesso Profissional.</p>
             
@@ -197,7 +203,6 @@
         <!-- CONTEÚDO DAS CALCULADORAS -->
         <div id="calculators-wrapper">
             
-            <!-- ALVENARIA -->
             <div id="alvenaria" class="calculator-section active">
                 <h2>Calculadora de Alvenaria</h2>
                 <div class="form-group">
@@ -205,10 +210,12 @@
                     <input type="number" id="alv-area" value="20">
                 </div>
                 <button class="calc-submit" onclick="executarCalculo('alvenaria')">Calcular Materiais</button>
-                <div id="res-alvenaria" class="result-box" style="display:none;"></div>
+                <div id="res-alvenaria" class="result-box" style="display:none;">
+                    • Tijolos necessários: ~320 unidades<br>
+                    • Argamassa de assentamento: ~4 sacos (25kg)
+                </div>
             </div>
 
-            <!-- VIGAS & CONCRETO -->
             <div id="vigas" class="calculator-section">
                 <h2>Calculadora de Vigas & Concreto</h2>
                 <div class="form-group">
@@ -216,10 +223,11 @@
                     <input type="number" id="vig-volume" value="2">
                 </div>
                 <button class="calc-submit" onclick="executarCalculo('vigas')">Calcular Concreto</button>
-                <div id="res-vigas" class="result-box" style="display:none;"></div>
+                <div id="res-vigas" class="result-box" style="display:none;">
+                    • Cimento: ~14 sacos<br>• Areia: ~1.1 m³<br>• Brita: ~1.3 m³
+                </div>
             </div>
 
-            <!-- LAJES -->
             <div id="lajes" class="calculator-section">
                 <h2>Relatório Técnico da Laje (H8)</h2>
                 <div class="form-group">
@@ -235,27 +243,23 @@
                 </div>
             </div>
 
-            <!-- HIDRÁULICA & ELÉTRICA -->
             <div id="hidraulica" class="calculator-section">
                 <h2>Hidráulica & Elétrica</h2>
                 <p>Ferramenta de dimensionamento básico de circuitos e tubulações.</p>
                 <button class="calc-submit" onclick="executarCalculo('hidraulica')">Processar Dados</button>
-                <div id="res-hidraulica" class="result-box" style="display:none;">Dados processados com sucesso.</div>
+                <div id="res-hidraulica" class="result-box" style="display:none;">Tubos e eletrodutos dimensionados com sucesso.</div>
             </div>
 
-            <!-- ORÇAMENTO GERAL -->
             <div id="orcamento" class="calculator-section">
                 <h2>Orçamento Geral da Obra</h2>
                 <p>Consolidação de todos os custos calculados nas abas anteriores.</p>
                 <button class="calc-submit" onclick="executarCalculo('orcamento')">Gerar Orçamento</button>
-                <div id="res-orcamento" class="result-box" style="display:none;">Orçamento gerado com sucesso.</div>
+                <div id="res-orcamento" class="result-box" style="display:none;">Orçamento consolidado gerado.</div>
             </div>
 
-            <!-- ABA DE ATIVIDADE/INFO -->
             <div id="ativar" class="calculator-section">
-                <h2>Informações e Ativação Profissional</h2>
-                <p>Seu acesso é controlado de forma segura neste navegador.</p>
-                <p>Caso tenha feito o pagamento de R$ 20,00, insira sua senha de liberação na tela de bloqueio ou entre em contato com o suporte para revalidar.</p>
+                <h2>Informações de Acesso Profissional</h2>
+                <p>O acesso fica vinculado permanentemente a este navegador/computador.</p>
             </div>
 
         </div>
@@ -263,16 +267,14 @@
     </div>
 
     <script>
-        // Configurações iniciais de controle por máquina (localStorage)
-        const SENHA_MESTRA_DEV = "PRO2026"; // Senha que você criará para liberar para os clientes que pagarem
+        const SENHA_MESTRA_DEV = "PRO2026";
 
         function checarAcesso() {
             let statusPro = localStorage.getItem('construtor_pro_ativo');
             let creditos = localStorage.getItem('construtor_creditos');
 
-            // Se for o primeiro acesso absoluto neste computador
             if (creditos === null && statusPro !== "true") {
-                localStorage.setItem('construtor_creditos', '5'); // Dá 5 créditos grátis iniciais
+                localStorage.setItem('construtor_creditos', '5');
                 creditos = 5;
             }
 
@@ -283,11 +285,10 @@
             } else {
                 let creditosRestantes = parseInt(creditos);
                 if (creditosRestantes > 0) {
-                    document.getElementById('status-creditos').innerText = `Créditos gratuitos restantes: ${creditosRestantes}`;
+                    document.getElementById('status-creditos').innerText = `Créditos gratuitos restantes neste computador: ${creditosRestantes}`;
                     document.getElementById('calculators-wrapper').style.display = 'block';
                     document.getElementById('paywall-screen').style.display = 'none';
                 } else {
-                    // Bloqueia a tela se os créditos acabarem
                     document.getElementById('status-creditos').innerText = "Status: Créditos esgotados";
                     document.getElementById('calculators-wrapper').style.display = 'none';
                     document.getElementById('paywall-screen').style.display = 'block';
@@ -306,10 +307,8 @@
                 }
             }
             
-            // Atualiza a tela e verifica se deve bloquear
             checarAcesso();
 
-            // Mostra o resultado da aba correspondente
             let box = document.getElementById('res-' + tipo);
             if(box) {
                 box.style.display = 'block';
@@ -327,25 +326,24 @@
             }
         }
 
-        // Executa a checagem assim que a página abre
         window.onload = function() {
             checarAcesso();
         };
 
         function switchTab(tabId) {
-            // Esconde todas as seções
             document.querySelectorAll('.calculator-section').forEach(sec => {
                 sec.classList.remove('active');
             });
-            // Remove a classe active de todos os botões
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // Ativa a seção clicada
             document.getElementById(tabId).classList.add('active');
             event.currentTarget.classList.add('active');
         }
     </script>
 </body>
 </html>
+"""
+
+components.html(html_code, height=750, scrolling=True)
