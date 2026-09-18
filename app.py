@@ -614,7 +614,9 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                         )
 
                         try:
-                            model = genai.GenerativeModel("gemini-1.5-flash")
+                            # Alterado para 'gemini-pro', que é o modelo estável padrão e amplamente suportado pelo SDK
+                            model = genai.GenerativeModel("gemini-pro")
+                            
                             historico_texto = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in st.session_state.mensagens_chat])
                             prompt_completo = f"{prompt_sistema}\n\nHistórico da conversa:\n{historico_texto}\n\nResponda à última mensagem do usuário mantendo o personagem."
                             
