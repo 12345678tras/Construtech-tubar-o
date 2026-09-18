@@ -40,7 +40,7 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
     funcao_conteudo()
 
 # ==========================================
-# 7. ASSISTENTE IA INTEGRADO COM O GEMINI
+# ASSISTENTE IA INTEGRADO COM O GEMINI
 # ==========================================
 if modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
     def conteudo_ia():
@@ -87,8 +87,8 @@ if modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                     <div class="pix-box-baixo" style="margin-top: 15px;">
                         <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
                         <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
-                        <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_0](start_span)[span_0](end_span)
-                        <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_1](start_span)[span_1](end_span)
+                        <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_2](start_span)[span_2](end_span)
+                        <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_3](start_span)[span_3](end_span)
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -134,8 +134,8 @@ if modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                 with st.chat_message("assistant"):
                     with st.spinner("O Gemini está calculando os parâmetros da obra..."):
                         try:
-                            # Atualizado para o modelo padrão atual da API do Google Gemini
-                            model = genai.GenerativeModel("gemini-flash")
+                            # Correção definitiva do modelo utilizando o padrão exato da API
+                            model = genai.GenerativeModel("models/gemini-1.5-flash")
                             
                             prompt_sistema = (
                                 "Você é o Engenheiro Virtual Inteligente da plataforma 'Construtech Tubarão'. "
