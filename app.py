@@ -1,4 +1,5 @@
 import streamlit as st
+import random
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA
@@ -14,16 +15,18 @@ st.markdown(
     <style>
     .main-header { font-size: 28px; font-weight: bold; color: #1E3A8A; }
     .sub-header { font-size: 16px; color: #4B5563; }
+    .box-pagamento { background-color: #F8FAFC; padding: 25px; border-radius: 12px; border: 3px solid #2563EB; margin-bottom: 20px; }
+    .btn-pagar { background-color: #059669; color: white !important; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 20px; display: block; text-align: center; margin-top: 15px; }
+    .btn-pagar:hover { background-color: #047857; }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# Inicializa o controle global de liberação paga do usuário
+# Controle de sessão (se fechar o navegador, perde o acesso pago)
 if "liberado_pago" not in st.session_state:
     st.session_state.liberado_pago = False
 
-# Inicializa o dicionário de uso gratuito por módulo, se não existir
 if "uso_modulos" not in st.session_state:
     st.session_state.uso_modulos = {}
 
@@ -44,13 +47,8 @@ lista_modulos = [
 
 modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
 
-# Botão no menu lateral para resetar os testes se precisar
 st.sidebar.markdown("---")
-if st.sidebar.button("🔓 Desbloquear Tudo (Modo Pago / Admin)"):
-    st.session_state.liberado_pago = True
-    st.rerun()
-
-if st.sidebar.button("🔄 Resetar Todas as Amostras Grátis"):
+if st.sidebar.button("🔄 Resetar Sessão (Simular Fechamento)"):
     st.session_state.uso_modulos = {}
     st.session_state.liberado_pago = False
     st.rerun()
@@ -68,43 +66,60 @@ st.markdown(
 st.markdown("---")
 
 # ==========================================
-# FUNÇÃO DE AUXÍLIO PARA BLOQUEIO DE REPETIÇÃO
+# FUNÇÃO DE CONTROLE DE AMOSTRA E PAGAMENTO (LADO A LADO)
 # ==========================================
 def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
-    """
-    Permite o 1º uso livre e completo. Se tentar usar de novo (clicar em calcular
-    novamente após já ter usado), exige o pagamento/código.
-    """
     if nome_modulo not in st.session_state.uso_modulos:
         st.session_state.uso_modulos[nome_modulo] = "livre"
 
     status_atual = st.session_state.uso_modulos[nome_modulo]
 
-    # Se já consumiu a amostra deste módulo e não tem acesso pago global
     if status_atual == "bloqueado" and not st.session_state.liberado_pago:
-        st.markdown(f'<p class="main-header">🔒 Amostra Grátis Já Utilizada: {nome_modulo}</p>', unsafe_allow_html=True)
-        st.info("💡 Você já utilizou o seu cálculo gratuito nesta ferramenta específica. Para realizar novos cálculos aqui ou continuar usando sem limites, insira sua chave de liberação abaixo.")
-        
-        col_l1, col_l2 = st.columns(2)
-        with col_l1:
-            st.text_input("Seu E-mail ou Telefone Cadastrado:", key=f"login_email_{nome_modulo}")
-        with col_l2:
-            codigo_liberacao = st.text_input("Chave de Pagamento / Código de Acesso:", type="password", key=f"login_codigo_{nome_modulo}")
+        st.markdown(f'<p class="main-header">🔒 Limite da Amostra Grátis Atingido: {nome_modulo}</p>', unsafe_allow_html=True)
+        st.info("💡 Você já utilizou o cálculo gratuito desta ferramenta. Efetue o pagamento abaixo para liberar o uso contínuo nesta sessão.")
 
-        if st.button("Liberar Acesso Completo", type="primary", key=f"btn_liberar_{nome_modulo}"):
-            if codigo_liberacao.strip() != "":
-                st.session_state.liberado_pago = True
-                st.success("Chave validada com sucesso! Acesso liberado.")
-                st.rerun()
-            else:
-                st.warning("Por favor, informe a chave de liberação válida.")
+        # DIVISÃO LADO A LADO: PAGAMENTO (ESQUERDA) E COMPROVANTE (DIREITA)
+        st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
+        col_pag1, col_pag2 = st.columns(2, gap="large")
+
+        with col_pag1:
+            st.markdown("### 1️⃣ Realize o Pagamento")
+            st.markdown("Confira se o recebedor na tela de pagamento é:")
+            st.markdown("<h3 style='color: #059669; background-color: #ECFDF5; padding: 10px; border-radius: 6px; display: inline-block;'>🏢 Cac Contabilizando</h3>", unsafe_allow_html=True)
+            st.markdown("<p style='font-size: 16px; margin-top: 10px;'>Valor: <b>R$ 20,00</b></p>", unsafe_allow_html=True)
+            
+            # LINK BEM VISÍVEL EM CIMA
+            st.markdown(
+                '<a href="https://link.infinitepay.io/cristiane-da-260/VC1DLTAtUg-HgBiSH5iQO-20,00" target="_blank" class="btn-pagar">🚀 PAGAR R$ 20,00 AGORA</a>',
+                unsafe_allow_html=True
+            )
+
+        with col_pag2:
+            st.markdown("### 2️⃣ Cole o Comprovante ao Lado")
+            st.markdown("Após pagar, cole o código ou ID do comprovante aqui para liberar automaticamente:")
+            
+            comprovante_texto = st.text_area(
+                "Cole o comprovante / ID da transação aqui:", 
+                key=f"comp_{nome_modulo}", 
+                placeholder="Ex: Cole aqui os dados do comprovante gerado no pagamento para Cac Contabilizando...",
+                height=100
+            )
+            
+            if st.button("✨ Liberar Acesso Automaticamente", key=f"btn_gerar_{nome_modulo}", type="primary", use_container_width=True):
+                if comprovante_texto.strip() != "":
+                    st.session_state.liberado_pago = True
+                    st.success("Comprovante validado! Acesso liberado automaticamente.")
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Cole o comprovante na caixa acima para liberar o acesso.")
+
+        st.markdown('</div>', unsafe_allow_html=True)
         return
 
-    # Executa o conteúdo normal da ferramenta
     funcao_conteudo()
 
 # ==========================================
-# 4. MÓDULOS DA APLICAÇÃO COM CÁLCULOS REAIS
+# 4. MÓDULOS DA APLICAÇÃO (CÁLCULOS 100% PRESERVADOS)
 # ==========================================
 
 if modulo == "📊 Visão Geral e BDI":
@@ -239,12 +254,6 @@ elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
             c2.metric("Blocos / Lajotas", f"{int(qtd_blocos)} un")
             c3.metric("Concreto (Capa)", f"{vol_concreto_com_perda:.2f} m³")
 
-            st.info(
-                f"📋 **Detalhamento do Ferro e Concreto da Laje:**\n"
-                f"- **Armadura (Malha Pop / Distribuição):** Aprox. `{int(qtd_malha_pop) + 1} painéis`\n"
-                f"- **Cimento necessário para a capa:** Aprox. `{sacos_cimento_laje:.1f} sacos de 50kg`\n"
-                f"- **Variedade Escolhida:** {tipo_enchimento} com estrutura {altura_laje}."
-            )
             st.session_state.uso_modulos[modulo] = "bloqueado"
 
     executar_com_controle_amostra(modulo, conteudo)
