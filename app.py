@@ -223,10 +223,9 @@ elif modulo == "⚙️ Projeto de Aço, Custo e Auditoria de Armadura":
         fator_aco = 12 if "Normal" in padrao_aco else (16 if "Robusto" in padrao_aco else 9)
         peso_total = area_obra * fator_aco
         
-        # Divisão típica de bitolas em obra residencial
-        p_10 = peso_total * 0.45 # 10mm (3/8") - Vigas e pilares principais
-        p_8 = peso_total * 0.35  # 8mm (5/16") - Vigas secundárias e lajes
-        p_63 = peso_total * 0.20 # 6.3mm (1/4") - Estribos
+        p_10 = peso_total * 0.45 
+        p_8 = peso_total * 0.35  
+        p_63 = peso_total * 0.20 
 
         custo_aco_total = peso_total * preco_kg_aco
 
@@ -256,7 +255,7 @@ elif modulo == "🏗️ Estrutural, Vigas, Bitolas e Aços":
         vao_viga = st.number_input("Vão Livre da Viga (metros):", min_value=1.0, value=4.0, step=0.5)
         carga_viga = st.selectbox("Carga Suportada:", ["Residencial Normal (Laje + Paredes em cima)", "Viga de Balanço / Porta-Alinhamento", "Apenas Cobertura / Telhado"])
     with col2:
-        altura_viga_sugerida = vao_viga * 10 # Regra prática: vão x 10 em cm (ex: 4m = 40cm de altura)
+        altura_viga_sugerida = vao_viga * 10 
         st.info(f"💡 **Altura Mínima Recomendada para a Viga:** `{altura_viga_sugerida:.0f} cm` (incluindo a laje)")
 
     if st.button("Definir Bitolas e Espessuras da Viga", type="primary"):
@@ -300,15 +299,15 @@ elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
         tipo_esgoto_rede = st.selectbox("Destino do Esgoto:", ["Fossa Séptica + Sumidouro", "Rede Pública de Esgoto da Rua"])
 
     if st.button("Gerar Lista Prática de Material Hidráulico", type="primary"):
-        # Cálculos práticos de canteiro
-        # Banheiro completo padrão: Vaso sanitário (100mm), Lavatório, Chuveiro, Ralo
-        tubo_esgoto_100 = qtd_banheiros * 6.0 # metros de tubo 100mm
-        tubo_esgoto_40_50 = qtd_banheiros * 8.0 # metros de tubo 40/50mm (piae ralo)
-        tubo_agua_fria_25 = qtd_banheiros * 12.0 + distancia_cozinha_fossa # metros de tubo marrom 25mm (3/4)
+        tubo_esgoto_100 = qtd_banheiros * 6.0 
+        tubo_esgoto_40_50 = qtd_banheiros * 8.0 
+        
+        # Correção feita aqui: separando a conta da f-string para evitar o erro de sintaxe
+        distancia_agua_cozinha = distancia_cozinha_fossa + 4.0
+        tubo_agua_fria_25 = (qtd_banheiros * 12.0) + distancia_agua_cozinha
         
         caixa_gordura = 1 if distancia_cozinha_fossa > 0 else 0
         joelhos_100 = qtd_banheiros * 5
-        joelhos_25 = qtd_banheiros * 8 + 4
 
         st.success("Lista de materiais hidráulicos de canteiro gerada com sucesso!")
 
@@ -325,10 +324,10 @@ elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
             st.markdown(f"### 🍳 Para a Cozinha & Ligação até a Fossa (`{distancia_cozinha_fossa}m`):")
             st.write(f"- **Tubo Esgoto 75mm/100mm (Pia até Fossa):** `{distancia_cozinha_fossa} metros`")
             st.write(f"- **Caixa de Gordura Pronta (Obrigatória):** `{caixa_gordura} unidade`")
-            st.write(f"- **Tubo de Água Fria Marrom 25mm (3/4''):** `{distancia_agua_cozinha = distancia_cozinha_fossa + 4:.1f} metros`")
+            st.write(f"- **Tubo de Água Fria Marrom 25mm (3/4''):** `{distancia_agua_cozinha:.1f} metros`")
             st.write(f"- **Conexões Joelhos 25mm e Tês:** Aprox. `10 unidades`")
 
-        st.markdown(f'<div class="alerta-sucesso">💡 <b>Dica de Mestre de Obras:</b> Nunca misture tubos de esgoto cinzas comuns em trechos que recebem carga de tráfego de veículos. Use sempre a linha refoçada (marrom/laranja) e caixas de inspeção a cada 15 metros de tubulação enterrada.</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="alerta-sucesso">💡 <b>Dica de Mestre de Obras:</b> Nunca misture tubos de esgoto cinzas comuns em trechos que recebem carga de tráfego de veículos. Use sempre a linha reforçada (marrom/laranja) e caixas de inspeção a cada 15 metros de tubulação enterrada.</div>', unsafe_allow_html=True)
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "💼 Faturamento e CNPJ":
