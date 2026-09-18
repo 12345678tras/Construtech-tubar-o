@@ -44,7 +44,9 @@ else:
         unsafe_allow_html=True,
     )
 
-# Controle de sessão e base de dados
+# ==========================================
+# 3. GERENCIAMENTO DE ESTADO (SESSION STATE)
+# ==========================================
 if "liberado_pago" not in st.session_state:
     st.session_state.liberado_pago = False
 
@@ -54,13 +56,24 @@ if "uso_modulos" not in st.session_state:
 if "historico_comprovantes" not in st.session_state:
     st.session_state.historico_comprovantes = []
 
+# Controle rigoroso de 4 acessos gratuitos na IA
+if "contador_ia_gratis" not in st.session_state:
+    st.session_state.contador_ia_gratis = 0
+
 if "mensagens_chat" not in st.session_state:
     st.session_state.mensagens_chat = [
-        {"role": "assistant", "content": "Olá, meu irmão! Sou o engenheiro virtual da Construtech Tubarão. Pode mandar sua dúvida sobre sacos de cimento por metro quadrado, blocos, traços ou qualquer etapa da obra!"}
+        {
+            "role": "assistant",
+            "content": (
+                "Olá, meu irmão! Sou o engenheiro virtual da Construtech Tubarão. "
+                "Você tem **4 consultas gratuitas** para testar minha inteligência e tirar dúvidas de obra. "
+                "Pode mandar sua primeira pergunta!"
+            ),
+        }
     ]
 
 # ==========================================
-# 3. MENU LATERAL E PAINEL DO ADMINISTRADOR
+# 4. MENU LATERAL E PAINEL ADMINISTRADOR
 # ==========================================
 st.sidebar.title("Navegação de Módulos")
 lista_modulos = [
@@ -83,7 +96,7 @@ lista_modulos = [
 modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
 
 st.sidebar.markdown("---")
-with st.sidebar.expander("🛠️ Painel do Administrador (Sua Senha)"):
+with st.sidebar.expander("🛠️ Painel do Administrador"):
     senha_admin_input = st.text_input("Digite sua chave de liberação:", type="password", key="input_senha_adm")
     if st.button("🔓 Ativar Acesso Mestre"):
         senha_tratada = senha_admin_input.strip().upper()
@@ -99,15 +112,14 @@ with st.sidebar.expander("🛠️ Painel do Administrador (Sua Senha)"):
 
 if st.sidebar.button("🔄 Resetar Sessão (Simular Novo Cliente)"):
     st.session_state.uso_modulos = {}
+    st.session_state.contador_ia_gratis = 0
     st.session_state.liberado_pago = False
     st.rerun()
 
 # ==========================================
-# 4. CABEÇALHO DA APLICAÇÃO
+# 5. CABEÇALHO DA APLICAÇÃO
 # ==========================================
-st.markdown(
-    '<p class="main-header">🏗️ Construtech Tubarão</p>', unsafe_allow_html=True
-)
+st.markdown('<p class="main-header">🏗️ Construtech Tubarão</p>', unsafe_allow_html=True)
 st.markdown(
     '<p class="sub-header">Plataforma Profissional com Inteligência de Canteiro e Engenharia</p>',
     unsafe_allow_html=True,
@@ -115,7 +127,7 @@ st.markdown(
 st.markdown("---")
 
 # ==========================================
-# FUNÇÃO DE CONTROLE DE AMOSTRA E PAGAMENTO
+# FUNÇÃO DE BLOQUEIO DE MÓDULOS APÓS AMOSTRA
 # ==========================================
 def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
     if nome_modulo not in st.session_state.uso_modulos:
@@ -125,7 +137,7 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
 
     if status_atual == "bloqueado" and not st.session_state.liberado_pago:
         st.markdown(f'<p class="main-header">🔒 Amostra Grátis Utilizada: {nome_modulo}</p>', unsafe_allow_html=True)
-        st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando e desbloquear o uso completo, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO**[span_0](start_span)[span_0](end_span) ou insira sua chave de acesso mestre no painel ao lado.")
+        st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando e desbloquear o uso completo, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO**[span_1](start_span)[span_1](end_span) ou insira sua chave de acesso mestre no painel ao lado.")
 
         st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
         col_pag1, col_pag2 = st.columns(2, gap="large")
@@ -141,8 +153,8 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
                 <div class="pix-box-baixo">
                     <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
                     <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
-                    <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_1](start_span)[span_1](end_span)
-                    <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_2](start_span)[span_2](end_span)
+                    <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_2](start_span)[span_2](end_span)
+                    <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_3](start_span)[span_3](end_span)
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -165,7 +177,6 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
                         "comprovante": comprovante_texto.strip(),
                         "data": data_atual
                     })
-                    
                     st.session_state.liberado_pago = True
                     st.success("Acesso liberado com sucesso!")
                     st.rerun()
@@ -178,7 +189,7 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
     funcao_conteudo()
 
 # ==========================================
-# 5. MÓDULOS DA APLICAÇÃO
+# 6. MÓDULOS DO SISTEMA
 # ==========================================
 
 if modulo == "📊 Visão Geral e BDI":
@@ -186,7 +197,7 @@ if modulo == "📊 Visão Geral e BDI":
         st.subheader("Painel de Controle e Viabilidade Comercial")
         col1, col2 = st.columns(2)
         with col1:
-            cliente = st.text_input("Nome do Projeto / Cliente:", value="Obra Residencial Exemplo", key="bdi_cli")
+            st.text_input("Nome do Projeto / Cliente:", value="Obra Residencial Exemplo", key="bdi_cli")
             custo_base = st.number_input("Custo Direto Total Estimado (R$):", min_value=0.0, value=50000.0, step=1000.0, key="bdi_custo")
         with col2:
             bdi_taxa = st.slider("Taxa de BDI Aplicada (%):", 0.0, 50.0, 25.0, key="bdi_taxa")
@@ -269,7 +280,7 @@ elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
                 key="laje_enchimento"
             )
         with col2:
-            altura_laje = st.selectbox(
+            st.selectbox(
                 "Altura da Laje (Vigota + Capa):",
                 ["H8 (11 cm total)", "H12 (16 cm total)", "H16 (20 cm total)", "H20 (25 cm total)"],
                 key="laje_altura"
@@ -279,7 +290,6 @@ elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
             ml_vigotas = area_laje * 1.35
             qtd_blocos = area_laje * 8.3 if "Cerâmica" in tipo_enchimento else area_laje * 2.5
             vol_concreto_m3 = area_laje * 0.070 * 1.07
-            sacos_cimento_laje = vol_concreto_m3 * 6.5 
 
             st.success("Soma de materiais da laje realizada!")
             c1, c2, c3 = st.columns(3)
@@ -297,7 +307,7 @@ elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
             area_concreto = st.number_input("Metragem da Área / Piso (m²):", min_value=1.0, value=50.0, key="conc_area")
             espessura_cm = st.number_input("Espessura da Camada/Laje (cm):", min_value=1.0, value=7.0, key="conc_esp")
         with col2:
-            traco_tipo = st.selectbox(
+            st.selectbox(
                 "Variedade do Traço de Concreto:",
                 ["Traço 1:2:3 (Fck 25 MPa)", "Traço 1:2.5:3.5 (Fck 20 MPa)", "Traço 1:3:5 (Contrapiso)"],
                 key="conc_traco"
@@ -446,8 +456,6 @@ elif modulo == "⚡ Elétrica Básica Residencial":
             m_conduite = area_casa * 2.2
             caixas_4x2 = qtd_comodos * 5
             caixas_4x4 = qtd_comodos * 1
-            m_fio_25 = area_casa * 4.5 
-            m_fio_40 = area_casa * 1.5 
 
             st.success("Orçamento elétrico calculado com sucesso!")
             c1, c2 = st.columns(2)
@@ -485,7 +493,7 @@ elif modulo == "📝 Gerador de Contrato de Empreitada":
         col1, col2 = st.columns(2)
         with col1:
             contratante = st.text_input("Nome do Contratante (Cliente):", value="João da Silva", key="ct_cli")
-            engenheiro_resp = st.text_input("Nome do Engenheiro / Construtor:", value="Futuro Engenheiro", key="ct_eng")
+            st.text_input("Nome do Engenheiro / Construtor:", value="Futuro Engenheiro", key="ct_eng")
         with col2:
             valor_contrato = st.number_input("Valor Total do Contrato (R$):", value=80000.0, key="ct_val")
             prazo_meses = st.number_input("Prazo de Execução (meses):", min_value=1, value=6, key="ct_mes")
@@ -512,71 +520,133 @@ elif modulo == "💼 Faturamento e CNPJ":
     executar_com_controle_amostra(modulo, conteudo)
 
 # ==========================================
-# 6. ASSISTENTE IA INTELIGENTE E CONVERSACIONAL
+# 7. ASSISTENTE IA COM CONTROLE EXATO DE 4 ACESSOS
 # ==========================================
 elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
     def conteudo_ia():
         st.subheader("🤖 Engenheiro Virtual Inteligente - Construtech Tubarão")
-        st.markdown("Pergunte qualquer coisa sobre cimento por metro quadrado, quantidade de blocos, traços de argamassa ou etapas da obra. O assistente foi programado para conversar e te dar respostas técnicas reais!")
+        
+        # Exibe quantas consultas gratuitas restam
+        consultas_restantes = max(0, 4 - st.session_state.contador_ia_gratis)
+        if not st.session_state.liberado_pago:
+            if consultas_restantes > 0:
+                st.info(f"🎁 Você tem **{consultas_restantes} consulta(s) gratuita(s)** restantes com o Engenheiro Virtual.")
+            else:
+                st.warning("⚠️ Suas 4 consultas gratuitas da IA acabaram. Para continuar conversando sem limites, realize o pagamento abaixo ou insira sua senha de Administrador.")
 
-        # Exibe o histórico de mensagens na tela
+        # Exibe o histórico de mensagens do chat
         for msg in st.session_state.mensagens_chat:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
 
-        # Entrada de texto do usuário (Chat interativo real)
-        if prompt_usuario := st.chat_input("Ex: 'Quantos sacos de cimento por metro quadrado?' ou 'Qual o traço do concreto?'"):
-            # Adiciona a mensagem do usuário ao histórico
-            st.session_state.mensagens_chat.append({"role": "user", "content": prompt_usuario})
-            with st.chat_message("user"):
-                st.markdown(prompt_usuario)
+        # Se as 4 grátis esgotaram e não ativou o modo pago, bloqueia a digitação e exibe o Pix
+        if st.session_state.contador_ia_gratis >= 4 and not st.session_state.liberado_pago:
+            st.markdown("---")
+            st.markdown("### 🔒 Desbloqueie o Assistente IA Ilimitado")
+            st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
+            col_pag1, col_pag2 = st.columns(2, gap="large")
 
-            # Lógica inteligente para a IA responder de acordo com o que o usuário perguntou
-            with st.chat_message("assistant"):
-                with st.spinner("Consultando parâmetros de engenharia..."):
-                    pergunta_lower = prompt_usuario.lower()
-                    
-                    # Respostas inteligentes personalizadas para cada tipo de dúvida comum de obra:
-                    if "cimento" in pergunta_lower and "metro" in pergunta_lower:
-                        resposta_ia = (
-                            "📊 **Consumo de Cimento por Metro Quadrado:**\n\n"
-                            "- **Alvenaria de vedação (tijolo/bloco 9x19x19cm):** Gasta em média **0,018 a 0,020 m³ de argamassa por m²**, o que equivale a cerca de **5 a 6 kg de cimento por m²** de parede.\n"
-                            "- **Contrapiso / Piso (espessura de 5cm):** Gasta aproximadamente **7,5 sacos de cimento de 50kg** para cada 10 metros cúbicos de concreto magro ou argamassa aplicada.\n"
-                            "- **Reboco (espessura de 2cm):** Gasta cerca de **4 a 5 kg de cimento por m²** de parede revestida."
-                        )
-                    elif "tijolo" in pergunta_lower or "bloco" in pergunta_lower:
-                        resposta_ia = (
-                            "🧱 **Quantidade de Blocos / Tijolos por Metro Quadrado:**\n\n"
-                            "- **Bloco Cerâmico 9x19x19 cm (ou Tijolo Baiano):** São necessários cerca de **25 unidades por m²** de parede (considerando 5% de margem de perda por recortes).\n"
-                            "- **Bloco de Concreto Estrutural (14x19x39 cm):** São necessários cerca de **12,5 unidades por m²**.\n"
-                            "- **Tijolo Maciço / Comum:** Cerca de **90 a 100 unidades por m²** (assentado em pé)."
-                        )
-                    elif "traço" in pergunta_lower or "concreto" in pergunta_lower:
-                        resposta_ia = (
-                            "🏗️ **Traços Recomendados (ABNT):**\n\n"
-                            "- **Para Concreto Estrutural (Fundação, Vigas e Pilares - Fck 25 MPa):** Traço em volume de **1 : 2 : 3** (1 parte de cimento, 2 partes de areia média, 3 partes de brita).\n"
-                            "- **Para Contrapiso e Calçadas:** Traço de **1 : 3 : 5** (cimento, areia e brita).\n"
-                            "- **Para Assentamento de Alvenaria:** Traço de **1 : 4 ou 1 : 6** (cimento e areia, com cal hidratada para dar plasticidade)."
-                        )
-                    elif "agua" in pergunta_lower or "eletric" in pergunta_lower or "hidraul" in pergunta_lower:
-                        resposta_ia = (
-                            "🚰⚡ **Instalações Prediais (Água, Esgoto e Elétrica):**\n\n"
-                            "- Para hidráulica, utilize tubos de **25mm para água fria** e **100mm para esgoto** nas saídas principais de bacias sanitárias.\n"
-                            "- Para elétrica residencial (NBR 5410), utilize fios de **2,5mm²** para circuitos de tomadas comuns e iluminação, e fios de **4,0mm² ou 6,0mm²** para chuveiros e aparelhos de alta potência."
-                        )
+            with col_pag1:
+                st.markdown("### 1️⃣ Forma de Pagamento (Pix / Cartão)")
+                st.markdown(
+                    '<a href="https://link.infinitepay.io/cristiane-da-260/VC1DLTAtUg-HgBiSH5iQO-20,00" target="_blank" class="btn-pagar">💳 PAGAR COM CARTÃO / LINK</a>',
+                    unsafe_allow_html=True
+                )
+                st.markdown(
+                    """
+                    <div class="pix-box-baixo">
+                        <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
+                        <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
+                        <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_4](start_span)[span_4](end_span)
+                        <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_5](start_span)[span_5](end_span)
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            with col_pag2:
+                st.markdown("### 2️⃣ Liberar com Comprovante")
+                comprovante_texto = st.text_area(
+                    "Comprovante de Pagamento:", 
+                    key="comp_ia_chat", 
+                    placeholder="Cole o ID do Pix ou dados da transferência...",
+                    height=120
+                )
+                
+                if st.button("✨ Validar e Liberar Acesso da IA", key="btn_gerar_ia_chat", type="primary", use_container_width=True):
+                    if comprovante_texto.strip() != "":
+                        data_atual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                        st.session_state.historico_comprovantes.append({
+                            "modulo": "Assistente IA Completo",
+                            "comprovante": comprovante_texto.strip(),
+                            "data": data_atual
+                        })
+                        st.session_state.liberado_pago = True
+                        st.success("Acesso liberado com sucesso!")
+                        st.rerun()
                     else:
-                        resposta_ia = (
-                            f"Analisando sua dúvida sobre **'{prompt_usuario}'**: "
-                            "Para garantir precisão máxima no canteiro de obras, recomendo utilizar os módulos específicos de cálculo na barra lateral (como *Alvenaria*, *Concreto* ou *Lajes*). "
-                            "Lá você preenche a metragem exata e o sistema já te entrega a quantidade exata de material e o custo estimado. Tem alguma outra dúvida sobre os materiais ou etapas?"
-                        )
-                    
-                    st.markdown(resposta_ia)
-                    st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
+                        st.warning("⚠️ Insira o comprovante de pagamento.")
+
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        else:
+            # Caixa de texto normal para o chat
+            if prompt_usuario := st.chat_input("Ex: 'Quantos sacos de cimento por metro quadrado?' ou 'Qual o traço do concreto?'"):
+                if not st.session_state.liberado_pago:
+                    st.session_state.contador_ia_gratis += 1
+
+                st.session_state.mensagens_chat.append({"role": "user", "content": prompt_usuario})
+                with st.chat_message("user"):
+                    st.markdown(prompt_usuario)
+
+                with st.chat_message("assistant"):
+                    with st.spinner("Consultando parâmetros de engenharia..."):
+                        pergunta_lower = prompt_usuario.lower()
+                        
+                        if "cimento" in pergunta_lower and "metro" in pergunta_lower:
+                            resposta_ia = (
+                                "📊 **Consumo de Cimento por Metro Quadrado:**\n\n"
+                                "- **Alvenaria de vedação (tijolo/bloco 9x19x19cm):** Gasta em média **0,018 a 0,020 m³ de argamassa por m²**, o que equivale a cerca de **5 a 6 kg de cimento por m²** de parede.\n"
+                                "- **Contrapiso / Piso (espessura de 5cm):** Gasta aproximadamente **7,5 sacos de cimento de 50kg** para cada 10 metros cúbicos de concreto magro ou argamassa aplicada.\n"
+                                "- **Reboco (espessura de 2cm):** Gasta cerca de **4 a 5 kg de cimento por m²** de parede revestida."
+                            )
+                        elif "tijolo" in pergunta_lower or "bloco" in pergunta_lower:
+                            resposta_ia = (
+                                "🧱 **Quantidade de Blocos / Tijolos por Metro Quadrado:**\n\n"
+                                "- **Bloco Cerâmico 9x19x19 cm (ou Tijolo Baiano):** São necessários cerca de **25 unidades por m²** de parede (considerando 5% de margem de perda por recortes).\n"
+                                "- **Bloco de Concreto Estrutural (14x19x39 cm):** São necessários cerca de **12,5 unidades por m²**.\n"
+                                "- **Tijolo Maciço / Comum:** Cerca de **90 a 100 unidades por m²** (assentado em pé)."
+                            )
+                        elif "traço" in pergunta_lower or "concreto" in pergunta_lower:
+                            resposta_ia = (
+                                "🏗️ **Traços Recomendados (ABNT):**\n\n"
+                                "- **Para Concreto Estrutural (Fundação, Vigas e Pilares - Fck 25 MPa):** Traço em volume de **1 : 2 : 3** (1 parte de cimento, 2 partes de areia média, 3 partes de brita).\n"
+                                "- **Para Contrapiso e Calçadas:** Traço de **1 : 3 : 5** (cimento, areia e brita).\n"
+                                "- **Para Assentamento de Alvenaria:** Traço de **1 : 4 ou 1 : 6** (cimento e areia, com cal hidratada para dar plasticidade)."
+                            )
+                        elif "agua" in pergunta_lower or "eletric" in pergunta_lower or "hidraul" in pergunta_lower:
+                            resposta_ia = (
+                                "🚰⚡ **Instalações Prediais (Água, Esgoto e Elétrica):**\n\n"
+                                "- Para hidráulica, utilize tubos de **25mm para água fria** e **100mm para esgoto** nas saídas principais de bacias sanitárias.\n"
+                                "- Para elétrica residencial (NBR 5410), utilize fios de **2,5mm²** para circuitos de tomadas comuns e iluminação, e fios de **4,0mm² ou 6,0mm²** para chuveiros e aparelhos de alta potência."
+                            )
+                        else:
+                            resposta_ia = (
+                                f"Analisando sua dúvida sobre **'{prompt_usuario}'**: "
+                                "Para garantir precisão máxima no canteiro de obras, recomendo utilizar os módulos específicos de cálculo na barra lateral (como *Alvenaria*, *Concreto* ou *Lajes*). "
+                                "Lá você preenche a metragem exata e o sistema já te entrega a quantidade exata de material e o custo estimado. Tem alguma outra dúvida?"
+                            )
+                        
+                        st.markdown(resposta_ia)
+                        st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
+                
+                st.rerun()
 
     executar_com_controle_amostra("Assistente IA (Engenheiro Virtual Inteligente)", conteudo_ia)
 
-# Rodapé
+# ==========================================
+# 8. RODAPÉ DA APLICAÇÃO
+# ==========================================
 st.markdown("---")
 st.markdown(
     "<p style='text-align: center; color: gray;'>Construtech Tubarão © 2026 - Todos os direitos reservados</p>",
