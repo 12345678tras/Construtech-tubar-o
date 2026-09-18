@@ -14,26 +14,28 @@ st.markdown(
     <style>
     .main-header { font-size: 28px; font-weight: bold; color: #1E3A8A; }
     .sub-header { font-size: 16px; color: #4B5563; }
-    .alerta-sucesso { background-color: #ECFDF5; border: 1px solid #10B981; padding: 12px; border-radius: 6px; color: #065F46; font-weight: bold; margin-top: 10px; }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
 # ==========================================
-# 1.1. CONTROLE DE AMOSTRA GRÁTIS GRAVADA NO NAVEGADOR
+# 1.1. CONTROLE DE AMOSTRA GRÁTIS (1º ACESSO LIVRE)
 # ==========================================
-# Verificamos se o navegador já registrou que a amostra grátis foi usada
-params = st.query_params
-amostra_usada = params.get("amostra", "nao")
+# Inicializa o controle no navegador do usuário
+if "sessao_iniciada" not in st.session_state:
+    st.session_state.sessao_iniciada = False
+
+if "amostra_ja_consumida" not in st.session_state:
+    st.session_state.amostra_ja_consumida = False
 
 if "liberado_pago" not in st.session_state:
     st.session_state.liberado_pago = False
 
-# Se a amostra já foi usada e não foi inserida a chave de pagamento paga, bloqueia!
-if amostra_usada == "sim" and not st.session_state.liberado_pago:
-    st.markdown('<p class="main-header">🔒 Amostra Grátis Já Utilizada neste Computador</p>', unsafe_allow_html=True)
-    st.info("💡 Você já aproveitou o seu **1º acesso gratuito** neste dispositivo. Para continuar utilizando os módulos e fazendo novos cálculos, por favor insira a chave de liberação/pagamento abaixo.")
+# Se a pessoa já consumiu a amostra em uma visita anterior e não pagou, bloqueia
+if st.session_state.amostra_ja_consumida and not st.session_state.liberado_pago:
+    st.markdown('<p class="main-header">🔒 Acesso Expirado - Amostra Grátis Utilizada</p>', unsafe_allow_html=True)
+    st.info("💡 Você já utilizou o seu **1º acesso gratuito** completo neste dispositivo. Para continuar acessando os módulos e realizando novos cálculos, por favor insira a sua chave de pagamento ou código de liberação abaixo.")
     
     col_l1, col_l2 = st.columns(2)
     with col_l1:
@@ -50,9 +52,12 @@ if amostra_usada == "sim" and not st.session_state.liberado_pago:
             st.warning("Por favor, informe a chave de liberação válida.")
     
     st.stop()
-elif amostra_usada != "sim" and not st.session_state.liberado_pago:
-    # Marca no navegador do usuário que a amostra grátis foi consumida para futuras visitas
-    st.query_params["amostra"] = "sim"
+
+# Se é a primeira vez abrindo agora, marca que a sessão está ativa
+if not st.session_state.sessao_iniciada:
+    st.session_state.sessao_iniciada = True
+    # Daqui a pouco, quando fechar ou simular o fim do 1º acesso, marcamos como consumida
+    st.session_state.amostra_ja_consumida = True
 
 # ==========================================
 # 2. MENU LATERAL
@@ -71,6 +76,11 @@ modulo = st.sidebar.selectbox(
         "💼 Faturamento e CNPJ",
     ],
 )
+
+# Botão auxiliar no menu para você testar o bloqueio simulando que fechou e voltou
+if st.sidebar.button("🔄 Simular Fechar e Voltar (Testar Bloqueio)"):
+    st.session_state.liberado_pago = False
+    st.rerun()
 
 # ==========================================
 # 3. CABEÇALHO DA APLICAÇÃO
