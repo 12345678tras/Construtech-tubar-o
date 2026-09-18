@@ -1,4 +1,4 @@
-Pimport streamlit as st
+import streamlit as st
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA
@@ -124,7 +124,6 @@ if modulo == "📊 Visão Geral e BDI":
             col_m1, col_m2 = st.columns(2)
             col_m1.metric("Preço Final de Venda", f"R$ {preco_venda:,.2f}")
             col_m2.metric("Lucro Bruto Estimado", f"R$ {lucro_estimado:,.2f}")
-            # Marca como bloqueado para futuras repetições se não pagar
             st.session_state.uso_modulos[modulo] = "bloqueado"
 
     executar_com_controle_amostra(modulo, conteudo)
