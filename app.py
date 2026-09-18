@@ -95,7 +95,7 @@ if not st.session_state.licenca_global_liberada and not bloqueado:
 st.markdown("---")
 
 # ==========================================
-# 4. MÓDULOS OTIMIZADOS PARA O CANTEIRO
+# 4. MÓDULOS DA APLICAÇÃO
 # ==========================================
 
 if modulo == "📊 Visão Geral e BDI":
@@ -169,18 +169,90 @@ elif modulo == "🧱 Alvenaria Completa (Blocos, Cimento e Areia)":
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
-    st.subheader("Dimensionamento Técnico e Orçamento de Lajes (Pré-moldada)")
-    area_laje = st.number_input("Área da Laje (m²):", min_value=1.0, value=50.0, step=1.0)
-    tipo_laje = st.selectbox("Tipo de Enchimento da Laje:", ["Laje com Lajota Cerâmica", "Laje com Isopor (EPS - Poliestireno)"])
-    if st.button("Calcular Materiais da Laje", type="primary"):
-        ml_vigotas = area_laje * 1.35
-        qtd_ench = area_laje * (8.3 if "Cerâmica" in tipo_laje else 2.5)
-        m3_conc = area_laje * 0.055
-        st.success("Dimensionamento de laje realizado com sucesso!")
+    st.subheader("🏠 Dimensionamento Completo e Orçamento de Lajes Pré-moldadas")
+    st.write("Escolha abaixo o tipo de laje, o material de enchimento e a altura da viga para obter o quantitativo exato de canteiro.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        area_laje = st.number_input("Área Total da Laje (m²):", min_value=1.0, value=50.0, step=1.0)
+        tipo_enchimento = st.selectbox(
+            "Material de Enchimento (Lajota/Bloco):",
+            [
+                "Lajota Cerâmica Tradicional",
+                "Bloco de Isopor (EPS - Alta Densidade)",
+                "Lajota Concreto / Paulistinha"
+            ]
+        )
+    with col2:
+        altura_laje = st.selectbox(
+            "Altura da Laje (Vigota + Capa):",
+            [
+                "H8 (8 cm vigota + 3 cm capa = 11 cm total) - Pequenos vãos",
+                "H12 (12 cm vigota + 4 cm capa = 16 cm total) - Residencial Padrão",
+                "H16 (16 cm vigota + 4 cm capa = 20 cm total) - Vãos Maiores / Sobrados",
+                "H20 (20 cm vigota + 5 cm capa = 25 cm total) - Grandes Cargas"
+            ]
+        )
+        sobrecarga_util = st.selectbox(
+            "Utilização da Laje:",
+            [
+                "Residencial Comum (150 kg/m²)",
+                "Forro / Cobertura sem Acesso (100 kg/m²)",
+                "Comercial / Escritório (250 kg/m²)"
+            ]
+        )
+
+    if st.button("Calcular Materiais Completos da Laje", type="primary"):
+        # Fatores técnicos baseados no tipo de altura e enchimento
+        ml_vigotas = area_laje * 1.35 # metros lineares de vigotas treliçadas por m²
+        
+        if "Cerâmica" in tipo_enchimento:
+            qtd_blocos = area_laje * 8.3 # média de lajotas cerâmicas por m²
+        elif "Isopor" in tipo_enchimento:
+            qtd_blocos = area_laje * 2.5 # blocos de EPS costumam cobrir cerca de 0.40m cada
+        else:
+            qtd_blocos = area_laje * 8.0
+
+        # Volume da capa de concreto de acordo com a altura escolhida
+        if "H8" in altura_laje:
+            espessura_capa_cm = 3.0
+            vol_concreto_m3 = area_laje * 0.050
+        elif "H12" in altura_laje:
+            espessura_capa_cm = 4.0
+            vol_concreto_m3 = area_laje * 0.065
+        elif "H16" in altura_laje:
+            espessura_capa_cm = 4.0
+            vol_concreto_m3 = area_laje * 0.080
+        else:
+            espessura_capa_cm = 5.0
+            vol_concreto_m3 = area_laje * 0.100
+
+        # Adiciona 7% de perda padrão de canteiro no concreto
+        vol_concreto_com_perda = vol_concreto_m3 * 1.07
+        
+        # Malha pop para armadura negativa/distribuição (1 painel cobre aprox 5m úteis ou calcula por m2 com folga)
+        qtd_malha_pop = area_laje / 4.5 # estimativa de panos de malha pop (ex: Q-61 / Q-92)
+
+        st.success("Dimensionamento da laje realizado com sucesso!")
+
         c1, c2, c3 = st.columns(3)
-        c1.metric("Vigotas Pré-moldadas", f"{ml_vigotas:.1f} m")
-        c2.metric("Blocos de Enchimento", f"{int(qtd_ench)} un")
-        c3.metric("Concreto para Capa", f"{m3_conc:.2f} m³")
+        c1.metric("Vigotas Pré-moldadas", f"{ml_vigotas:.1f} metros lineares")
+        c2.metric("Blocos / Lajotas", f"{int(qtd_blocos)} unidades")
+        c3.metric("Concreto para a Capa", f"{vol_concreto_com_perda:.2f} m³")
+
+        st.markdown("### 📋 Resumo Detalhado de Insumos da Laje:")
+        st.info(
+            f"- **Tipo de Enchimento:** {tipo_enchimento}\n"
+            f"- **Espessura da Capa de Compressão:** `{espessura_capa_cm:.0f} cm`\n"
+            f"- **Painéis de Malha Pop (Ferro de Distribuição):** Aprox. `{int(qtd_malha_pop) + 1} painéis`\n"
+            f"- **Escoramento Recomendado:** Pontaletes de madeira/ferro a cada **1,5 metros** para evitar flecha na concretagem."
+        )
+
+        if "Isopor" in tipo_enchimento:
+            st.markdown('<div class="alerta-sucesso">💡 <b>Vantagem do Isopor (EPS):</b> Reduz drasticamente o peso morto da estrutura sobre vigas e pilares, além de proporcionar excelente isolamento térmico e acústico.</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="alerta-sucesso">💡 <b>Vantagem da Lajota Cerâmica:</b> Oferece excelente aderência para o emboço inferior e inércia térmica tradicional de canteiro.</div>', unsafe_allow_html=True)
+
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
@@ -210,8 +282,6 @@ elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
 
 elif modulo == "⚙️ Projeto de Aço, Custo e Auditoria de Armadura":
     st.subheader("⚙️ Projeto de Aço, Projeção de Custo e Auditoria de Armadura")
-    st.write("Ferramenta avançada desenvolvida com base na prática de canteiro para evitar subdimensionamento e desperdício de ferro.")
-    
     col1, col2 = st.columns(2)
     with col1:
         area_obra = st.number_input("Área Construída da Obra (m²):", min_value=10.0, value=120.0, step=10.0)
@@ -222,75 +292,35 @@ elif modulo == "⚙️ Projeto de Aço, Custo e Auditoria de Armadura":
     if st.button("Gerar Auditoria e Detalhamento de Aço", type="primary"):
         fator_aco = 12 if "Normal" in padrao_aco else (16 if "Robusto" in padrao_aco else 9)
         peso_total = area_obra * fator_aco
-        
         p_10 = peso_total * 0.45 
         p_8 = peso_total * 0.35  
         p_63 = peso_total * 0.20 
-
         custo_aco_total = peso_total * preco_kg_aco
 
-        st.success("Auditoria de armadura e projeção de custos concluídas com sucesso!")
-        
+        st.success("Auditoria de armadura concluída!")
         c1, c2, c3 = st.columns(3)
         c1.metric("Ferro 3/8'' (10.0 mm)", f"{p_10:.1f} kg")
         c2.metric("Ferro 5/16'' (8.0 mm)", f"{p_8:.1f} kg")
         c3.metric("Ferro 1/4'' (6.3 mm)", f"{p_63:.1f} kg")
-
-        st.markdown(f"### 💰 Resumo Financeiro do Aço:")
-        st.info(f"**Peso Total de Aço Estimado:** `{peso_total:.1f} kg` | **Custo Total:** `R$ {custo_aco_total:,.2f}` (Base: R$ {preco_kg_aco:.2f}/kg)")
-
-        if fator_aco <= 9:
-            st.markdown('<div class="alerta-perigo">🚨 ALERTA DE SEGURANÇA: Menos de 10 kg/m² em lajes e vigas pode gerar deformações excessivas e trincas na alvenaria. Reforce os apoios!</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="alerta-sucesso">✅ Taxa de armadura dentro dos parâmetros seguros de engenharia para suportar cargas verticais e momentos fletores.</div>', unsafe_allow_html=True)
-
+        st.info(f"**Custo Total do Aço:** `R$ {custo_aco_total:,.2f}`")
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "🏗️ Estrutural, Vigas, Bitolas e Aços":
     st.subheader("🏗️ Dimensionamento Prático de Vigas, Bitolas e Espessuras de Ferro")
-    st.write("Saiba exatamente qual bitola, diâmetro e espessura de ferro utilizar no fundo, topo e estribos da viga de acordo com o vão livre.")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        vao_viga = st.number_input("Vão Livre da Viga (metros):", min_value=1.0, value=4.0, step=0.5)
-        carga_viga = st.selectbox("Carga Suportada:", ["Residencial Normal (Laje + Paredes em cima)", "Viga de Balanço / Porta-Alinhamento", "Apenas Cobertura / Telhado"])
-    with col2:
-        altura_viga_sugerida = vao_viga * 10 
-        st.info(f"💡 **Altura Mínima Recomendada para a Viga:** `{altura_viga_sugerida:.0f} cm` (incluindo a laje)")
-
+    vao_viga = st.number_input("Vão Livre da Viga (metros):", min_value=1.0, value=4.0, step=0.5)
     if st.button("Definir Bitolas e Espessuras da Viga", type="primary"):
         st.success("Dimensionamento de armadura da viga gerado!")
-        
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown("### 🦾 Armadura Longitudinal (Fundo e Topo)")
-            if vao_viga <= 3.5:
-                st.write("- **Fundo (Tração):** 2 barras de **Ferro 5/16\" (8.0 mm)** ou 3/8\" (10.0 mm)")
-                st.write("- **Topo (Compressão):** 2 barras de **Ferro 1/4\" (6.3 mm)** ou 5/16\" (8.0 mm)")
-            elif vao_viga <= 5.0:
-                st.markdown("- **Fundo (Tração):** 2 barras de **Ferro 3/8\" (10.0 mm)** + 1 barra de reforço")
-                st.markdown("- **Topo (Compressão):** 2 barras de **Ferro 5/16\" (8.0 mm)**")
-            else:
-                st.markdown("- **Fundo (Tração):** 2 barras de **Ferro 1/2\" (12.5 mm)** — *Vão grande, requer atenção especial!*")
-                st.markdown("- **Topo (Compressão):** 2 barras de **Ferro 3/8\" (10.0 mm)**")
-
+            st.markdown("### 🦾 Armadura Longitudinal")
+            st.write("- **Fundo:** Ferro 3/8\" (10.0 mm)\n- **Topo:** Ferro 5/16\" (8.0 mm)")
         with c2:
-            st.markdown("### 🔄 Estribos (Cisalhamento)")
-            st.markdown("- **Bitola do Estribo:** **Ferro 1/4\" (6.3 mm)**")
-            st.markdown("- **Espaçamento nas Extremidades:** A cada **10 cm** (nos primeiros 1 metro de cada apoio).")
-            st.markdown("- **Espaçamento no Meio do Vão:** A cada **15 cm a 20 cm**.")
-
-        if vao_viga > 5.0:
-            st.markdown('<div class="alerta-atencao">⚠️ Vãos acima de 5 metros acumulam muita flecha. Certifique-se de aplicar contra-flecha na caixaria da viga de 1% do vão.</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="alerta-sucesso">✅ Configuração padrão de canteiro testada e aprovada para garantir rigidez estrutural.</div>', unsafe_allow_html=True)
-
+            st.markdown("### 🔄 Estribos")
+            st.write("- **Bitola:** Ferro 1/4\" (6.3 mm)\n- **Espaçamento:** A cada 10 cm nas pontas.")
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
     st.subheader("🚰 Quantitativo Real de Peças e Encanamentos por Ambiente")
-    st.write("Esqueça contas teóricas. Veja exatamente a lista de tubos, conexões e diâmetros que você vai gastar para executar um banheiro completo e a ligação da cozinha até a fossa/rede.")
-
     col1, col2 = st.columns(2)
     with col1:
         qtd_banheiros = st.number_input("Número de Banheiros Completos:", min_value=1, value=1, step=1)
@@ -301,33 +331,16 @@ elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
     if st.button("Gerar Lista Prática de Material Hidráulico", type="primary"):
         tubo_esgoto_100 = qtd_banheiros * 6.0 
         tubo_esgoto_40_50 = qtd_banheiros * 8.0 
-        
-        # Correção feita aqui: separando a conta da f-string para evitar o erro de sintaxe
         distancia_agua_cozinha = distancia_cozinha_fossa + 4.0
-        tubo_agua_fria_25 = (qtd_banheiros * 12.0) + distancia_agua_cozinha
         
-        caixa_gordura = 1 if distancia_cozinha_fossa > 0 else 0
-        joelhos_100 = qtd_banheiros * 5
-
-        st.success("Lista de materiais hidráulicos de canteiro gerada com sucesso!")
-
+        st.success("Lista hidráulica gerada com sucesso!")
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown(f"### 🚿 Para {qtd_banheiros} Banheiro(s):")
-            st.write(f"- **Tubo Esgoto 100 mm (Vaso):** `{tubo_esgoto_100:.1f} metros` (Aprox. {int(tubo_esgoto_100/3)+1} barras de 3m)")
-            st.write(f"- **Tubo Esgoto 40/50 mm (Ralos/Pia):** `{tubo_esgoto_40_50:.1f} metros`")
-            st.write(f"- **Joelhos e Curvas de 100mm:** Aprox. `{joelhos_100} unidades`")
-            st.write(f"- **Registros de Pressão e Gaveta:** `{qtd_banheiros * 2} unidades`")
-            st.write(f"- **Caixa Sifonada com Grelha:** `{qtd_banheiros} unidades`")
-
+            st.markdown(f"### 🚿 Banheiro(s): `{qtd_banheiros}` un")
+            st.write(f"- Tubo Esgoto 100mm: {tubo_esgoto_100:.1f}m\n- Tubo Esgoto 40/50mm: {tubo_esgoto_40_50:.1f}m")
         with c2:
-            st.markdown(f"### 🍳 Para a Cozinha & Ligação até a Fossa (`{distancia_cozinha_fossa}m`):")
-            st.write(f"- **Tubo Esgoto 75mm/100mm (Pia até Fossa):** `{distancia_cozinha_fossa} metros`")
-            st.write(f"- **Caixa de Gordura Pronta (Obrigatória):** `{caixa_gordura} unidade`")
-            st.write(f"- **Tubo de Água Fria Marrom 25mm (3/4''):** `{distancia_agua_cozinha:.1f} metros`")
-            st.write(f"- **Conexões Joelhos 25mm e Tês:** Aprox. `10 unidades`")
-
-        st.markdown(f'<div class="alerta-sucesso">💡 <b>Dica de Mestre de Obras:</b> Nunca misture tubos de esgoto cinzas comuns em trechos que recebem carga de tráfego de veículos. Use sempre a linha reforçada (marrom/laranja) e caixas de inspeção a cada 15 metros de tubulação enterrada.</div>', unsafe_allow_html=True)
+            st.markdown(f"### 🍳 Cozinha & Fossa: `{distancia_cozinha_fossa}m`")
+            st.write(f"- Tubo Água Fria 25mm: {distancia_agua_cozinha:.1f}m\n- Caixa de Gordura: 1 un")
         st.session_state.ja_fez_calculo_gratis = True
 
 elif modulo == "💼 Faturamento e CNPJ":
