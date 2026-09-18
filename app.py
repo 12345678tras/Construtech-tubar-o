@@ -55,7 +55,7 @@ if "historico_comprovantes" not in st.session_state:
     st.session_state.historico_comprovantes = []
 
 # ==========================================
-# 3. MENU LATERAL
+# 3. MENU LATERAL E PAINEL DO ADMINISTRADOR
 # ==========================================
 st.sidebar.title("Navegação de Módulos")
 lista_modulos = [
@@ -66,19 +66,30 @@ lista_modulos = [
     "⚙️ Projeto de Aço, Custo e Auditoria de Armadura",
     "🏗️ Estrutural, Vigas, Bitolas e Aços",
     "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)",
+    "🎨 Revestimento, Acabamento e Pintura",
+    "🏠 Cobertura e Telhado",
+    "⚡ Elétrica Básica Residencial",
+    "📅 Cronograma Físico-Financeiro (Curva S)",
+    "📝 Gerador de Contrato de Empreitada",
     "💼 Faturamento e CNPJ",
 ]
 
 modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
 
 st.sidebar.markdown("---")
-with st.sidebar.expander("🛠️ Painel do Administrador"):
-    st.write("Comprovantes/Chaves inseridas:")
-    if st.session_state.historico_comprovantes:
-        for idx, item in enumerate(st.session_state.historico_comprovantes):
-            st.text(f"{idx+1}. Mod: {item['modulo']}\nComp: {item['comprovante']}\nData: {item['data']}")
-    else:
-        st.write("Nenhum registro ainda.")
+with st.sidebar.expander("🛠️ Painel do Administrador (Sua Senha)"):
+    senha_admin_input = st.text_input("Digite sua chave de liberação:", type="password", key="input_senha_adm")
+    if st.button("🔓 Ativar Acesso Mestre"):
+        # A senha mestre baseada no seu caderno / anotação
+        if senha_admin_input.strip() == "CONSTRUTECH12":
+            st.session_state.liberado_pago = True
+            st.success("Acesso Administrador liberado com sucesso!")
+            st.rerun()
+        else:
+            st.error("Chave incorreta!")
+
+    if st.session_state.liberado_pago:
+        st.info("Status atual: **MODO MASTER LIBERADO 🔓**")
 
 if st.sidebar.button("🔄 Resetar Sessão (Simular Novo Cliente)"):
     st.session_state.uso_modulos = {}
@@ -106,10 +117,9 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
 
     status_atual = st.session_state.uso_modulos[nome_modulo]
 
-    # Se estiver bloqueado e não liberado globalmente
     if status_atual == "bloqueado" and not st.session_state.liberado_pago:
         st.markdown(f'<p class="main-header">🔒 Amostra Grátis Utilizada: {nome_modulo}</p>', unsafe_allow_html=True)
-        st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando e desbloquear o uso completo, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO**[span_0](start_span)[span_0](end_span) ou insira sua chave de acesso especial.")
+        st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando e desbloquear o uso completo, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO**[span_0](start_span)[span_0](end_span) ou insira sua chave de acesso mestre no painel ao lado.")
 
         st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
         col_pag1, col_pag2 = st.columns(2, gap="large")
@@ -133,13 +143,13 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
             )
 
         with col_pag2:
-            st.markdown("### 2️⃣ Liberar com Comprovante ou Chave")
-            st.markdown("Cole o comprovante de pagamento ou digite a sua chave de liberação abaixo:")
+            st.markdown("### 2️⃣ Liberar com Comprovante")
+            st.markdown("Cole o comprovante de pagamento abaixo:")
             
             comprovante_texto = st.text_area(
-                "Comprovante ou Chave de Acesso:", 
+                "Comprovante de Pagamento:", 
                 key=f"comp_{nome_modulo}", 
-                placeholder="Ex: Cole o ID do Pix, comprovante ou digite sua chave...",
+                placeholder="Cole o ID do Pix ou dados da transferência...",
                 height=120
             )
             
@@ -156,7 +166,7 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
                     st.success("Acesso liberado com sucesso!")
                     st.rerun()
                 else:
-                    st.warning("⚠️ Insira o comprovante ou a chave de liberação.")
+                    st.warning("⚠️ Insira o comprovante de pagamento.")
 
         st.markdown('</div>', unsafe_allow_html=True)
         return
@@ -204,7 +214,6 @@ Gerado por Construtech Tubarão - Plataforma de Engenharia
                 mime="text/plain"
             )
 
-            # Bloqueia após o primeiro uso gratuito
             st.session_state.uso_modulos[modulo] = "bloqueado"
 
     executar_com_controle_amostra(modulo, conteudo)
@@ -266,9 +275,7 @@ elif modulo == "🧱 Alvenaria Completa (Blocos, Cimento e Areia)":
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
 --------------------------------------------------
 Área de Paredes: {area_paredes} m²
-Material: {tipo_material}
---------------------------------------------------
-- Custo Total Estimado: R$ {custo_tot:,.2f}
+Custo Total Estimado: R$ {custo_tot:,.2f}
 ==================================================
 Gerado por Construtech Tubarão - Plataforma de Engenharia
 """
@@ -291,51 +298,27 @@ elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
             area_laje = st.number_input("Área Total da Laje (m²):", min_value=1.0, value=50.0, step=1.0, key="laje_area")
             tipo_enchimento = st.selectbox(
                 "Variedade de Enchimento da Laje:",
-                [
-                    "Lajota Cerâmica Tradicional",
-                    "Bloco de Isopor (EPS - Alta Densidade)",
-                    "Lajota Concreto / Paulistinha"
-                ],
+                ["Lajota Cerâmica Tradicional", "Bloco de Isopor (EPS - Alta Densidade)", "Lajota Concreto / Paulistinha"],
                 key="laje_enchimento"
             )
         with col2:
             altura_laje = st.selectbox(
                 "Altura da Laje (Vigota + Capa):",
-                [
-                    "H8 (8 cm vigota + 3 cm capa = 11 cm total)",
-                    "H12 (12 cm vigota + 4 cm capa = 16 cm total)",
-                    "H16 (16 cm vigota + 4 cm capa = 20 cm total)",
-                    "H20 (20 cm vigota + 5 cm capa = 25 cm total)"
-                ],
+                ["H8 (11 cm total)", "H12 (16 cm total)", "H16 (20 cm total)", "H20 (25 cm total)"],
                 key="laje_altura"
             )
 
         if st.button("Calcular Materiais e Ferro da Laje", type="primary", key="btn_calc_laje"):
             ml_vigotas = area_laje * 1.35
-            if "Cerâmica" in tipo_enchimento:
-                qtd_blocos = area_laje * 8.3
-            elif "Isopor" in tipo_enchimento:
-                qtd_blocos = area_laje * 2.5
-            else:
-                qtd_blocos = area_laje * 8.0
-
-            if "H8" in altura_laje:
-                vol_concreto_m3 = area_laje * 0.050
-            elif "H12" in altura_laje:
-                vol_concreto_m3 = area_laje * 0.065
-            elif "H16" in altura_laje:
-                vol_concreto_m3 = area_laje * 0.080
-            else:
-                vol_concreto_m3 = area_laje * 0.100
-
-            vol_concreto_com_perda = vol_concreto_m3 * 1.07
-            sacos_cimento_laje = vol_concreto_com_perda * 6.5 
+            qtd_blocos = area_laje * 8.3 if "Cerâmica" in tipo_enchimento else area_laje * 2.5
+            vol_concreto_m3 = area_laje * 0.070 * 1.07
+            sacos_cimento_laje = vol_concreto_m3 * 6.5 
 
             st.success("Soma de materiais da laje realizada!")
             c1, c2, c3 = st.columns(3)
-            c1.metric("Vigotas Pré-moldadas", f"{ml_vigotas:.1f} m lineares")
+            c1.metric("Vigotas Pré-moldadas", f"{ml_vigotas:.1f} m")
             c2.metric("Blocos / Lajotas", f"{int(qtd_blocos)} un")
-            c3.metric("Concreto (Capa)", f"{vol_concreto_com_perda:.2f} m³")
+            c3.metric("Concreto (Capa)", f"{vol_concreto_m3:.2f} m³")
 
             relatorio_laje = f"""=== CONSTRUTECH TUBARÃO - RELATÓRIO DE LAJES ===
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
@@ -365,39 +348,26 @@ elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
         with col2:
             traco_tipo = st.selectbox(
                 "Variedade do Traço de Concreto:",
-                [
-                    "Traço 1:2:3 (Fck 25 MPa - Estrutural Forte)",
-                    "Traço 1:2.5:3.5 (Fck 20 MPa - Residencial Padrão)",
-                    "Traço 1:3:5 (Contrapiso / Lastro Magro)"
-                ],
+                ["Traço 1:2:3 (Fck 25 MPa)", "Traço 1:2.5:3.5 (Fck 20 MPa)", "Traço 1:3:5 (Contrapiso)"],
                 key="conc_traco"
             )
 
         if st.button("Calcular Volume e Quantidade de Sacos", type="primary", key="btn_calc_conc"):
             volume_real = (area_concreto * (espessura_cm / 100.0)) * 1.07 
-            if "25 MPa" in traco_tipo:
-                sc_cif = volume_real * 7.5
-                areia_m3 = volume_real * 0.55
-                brita_m3 = volume_real * 0.75
-            elif "20 MPa" in traco_tipo:
-                sc_cif = volume_real * 6.5
-                areia_m3 = volume_real * 0.60
-                brita_m3 = volume_real * 0.78
-            else:
-                sc_cif = volume_real * 5.0
-                areia_m3 = volume_real * 0.65
-                brita_m3 = volume_real * 0.80
+            sc_cif = volume_real * 7.5
+            areia_m3 = volume_real * 0.55
+            brita_m3 = volume_real * 0.75
 
             st.success("Cálculo de concreto finalizado!")
             c1, c2, c3 = st.columns(3)
             c1.metric("Volume Total com Perda", f"{volume_real:.2f} m³")
-            c2.metric("Sacos de Cimento (50kg)", f"{sc_cif:.1f} sacos")
+            c2.metric("Sacos de Cimento", f"{sc_cif:.1f} sacos")
             c3.metric("Areia / Brita", f"{areia_m3:.2f} m³ / {brita_m3:.2f} m³")
 
             relatorio_conc = f"""=== CONSTRUTECH TUBARÃO - RELATÓRIO DE CONCRETO ===
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
 --------------------------------------------------
-Volume Total com Perda (7%): {volume_real:.2f} m³
+Volume Total: {volume_real:.2f} m³
 ==================================================
 Gerado por Construtech Tubarão - Plataforma de Engenharia
 """
@@ -428,7 +398,7 @@ elif modulo == "⚙️ Projeto de Aço, Custo e Auditoria de Armadura":
             relatorio_aco = f"""=== CONSTRUTECH TUBARÃO - AUDITORIA DE AÇO ===
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
 --------------------------------------------------
-Custo Total Estimado do Aço: R$ {custo_tot_aco:,.2f}
+Custo Total: R$ {custo_tot_aco:,.2f}
 ==================================================
 Gerado por Construtech Tubarão - Plataforma de Engenharia
 """
@@ -452,33 +422,25 @@ elif modulo == "🏗️ Estrutural, Vigas, Bitolas e Aços":
             qtd_pecas = st.number_input("Quantidade de Vigas/Colunas iguais:", min_value=1, value=4, key="viga_qtd")
         with col2:
             tipo_bitola_principal = st.selectbox(
-                "Bitola do Ferro Principal (Fundo/Topo):",
-                [
-                    "Ferro 3/8'' (10.0 mm) - Padrão Estrutural",
-                    "Ferro 5/16'' (8.0 mm) - Leve",
-                    "Ferro 1/2'' (12.5 mm) - Grande Vão / Sobrado"
-                ],
+                "Bitola do Ferro Principal:",
+                ["Ferro 3/8'' (10.0 mm)", "Ferro 5/16'' (8.0 mm)", "Ferro 1/2'' (12.5 mm)"],
                 key="viga_bitola"
-            )
-            espacamento_estribo = st.selectbox(
-                "Espaçamento dos Estribos (Ferro 1/4'' / 6.3mm):",
-                ["A cada 10 cm nas pontas / 15 cm no meio", "A cada 15 cm em todo o comprimento"]
             )
 
         if st.button("Calcular Quantidade de Ferro das Vigas", type="primary", key="btn_calc_vigas"):
             kg_por_viga = vao_viga * 8.5 * qtd_pecas
             estribos_un = int((vao_viga / 0.12) * qtd_pecas)
             
-            st.success("Dimensionamento de vigas e bitolas concluído!")
+            st.success("Dimensionamento de vigas concluído!")
             c1, c2, c3 = st.columns(3)
-            c1.metric("Ferro Principal", tipo_bitola_principal.split(" - ")[0])
+            c1.metric("Ferro Principal", tipo_bitola_principal)
             c2.metric("Peso Total", f"{kg_por_viga:.1f} kg")
             c3.metric("Estribos", f"{estribos_un} un")
             
             relatorio_vigas = f"""=== CONSTRUTECH TUBARÃO - RELATÓRIO ESTRUTURAL ===
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
 --------------------------------------------------
-Peso Total de Ferro: {kg_por_viga:.1f} kg
+Peso Total: {kg_por_viga:.1f} kg
 ==================================================
 Gerado por Construtech Tubarão - Plataforma de Engenharia
 """
@@ -501,29 +463,15 @@ elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
             qtd_banheiros = st.number_input("Número de Banheiros Completos:", min_value=1, value=1, step=1, key="hid_banh")
             qtd_cozinhas = st.number_input("Número de Cozinhas:", min_value=1, value=1, step=1, key="hid_coz")
         with col2:
-            distancia_fossa = st.number_input("Distância até a Fossa / Rede da Rua (metros):", min_value=2.0, value=10.0, step=1.0, key="hid_dist")
-            incluir_fossa = st.checkbox("Incluir Orçamento de Fossa Séptica + Sumidouro", value=True, key="hid_fos")
+            distancia_fossa = st.number_input("Distância até a Fossa (metros):", min_value=2.0, value=10.0, step=1.0, key="hid_dist")
 
         if st.button("Calcular Soma de Peças Hidráulicas", type="primary", key="btn_calc_hid"):
             cano_esgoto_100 = (qtd_banheiros * 6.0) + distancia_fossa
-            cano_esgoto_50 = qtd_banheiros * 5.0 + (qtd_cozinhas * 4.0)
             cano_agua_25 = (qtd_banheiros * 8.0) + (qtd_cozinhas * 6.0)
-            joelhos_100 = (qtd_banheiros * 6) + 4
-            joelhos_25 = (qtd_banheiros * 10) + (qtd_cozinhas * 6)
-            caixa_gordura = qtd_cozinhas * 1
 
             st.success("Soma hidráulica gerada com sucesso!")
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown("### 📏 Tubos e Conexões de Esgoto")
-                st.write(f"- Tubo Esgoto 100mm: **{cano_esgoto_100:.1f} metros**")
-                st.write(f"- Tubo Esgoto 50mm: **{cano_esgoto_50:.1f} metros**")
-                st.write(f"- Joelhos 100mm: **{joelhos_100} unidades**")
-            with c2:
-                st.markdown("### 💧 Água Fria e Acessórios")
-                st.write(f"- Tubo PVC Água Fria 25mm: **{cano_agua_25:.1f} metros**")
-                st.write(f"- Joelhos 25mm: **{joelhos_25} unidades**")
-                st.write(f"- Caixa de Gordura: **{caixa_gordura} unidade(s)**")
+            st.write(f"- Tubo Esgoto 100mm: **{cano_esgoto_100:.1f} metros**")
+            st.write(f"- Tubo Água Fria 25mm: **{cano_agua_25:.1f} metros**")
 
             relatorio_hid = f"""=== CONSTRUTECH TUBARÃO - RELATÓRIO HIDRÁULICO ===
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
@@ -536,6 +484,219 @@ Gerado por Construtech Tubarão - Plataforma de Engenharia
                 label="📥 Baixar Relatório Hidráulico (TXT)",
                 data=relatorio_hid,
                 file_name="Relatorio_Hidraulico.txt",
+                mime="text/plain"
+            )
+
+            st.session_state.uso_modulos[modulo] = "bloqueado"
+
+    executar_com_controle_amostra(modulo, conteudo)
+
+elif modulo == "🎨 Revestimento, Acabamento e Pintura":
+    def conteudo():
+        st.subheader("🎨 Cálculo de Reboco, Pintura e Pisos/Porcelanatos")
+        col1, col2 = st.columns(2)
+        with col1:
+            area_rev = st.number_input("Área de Paredes para Reboco/Pintura (m²):", min_value=1.0, value=100.0, key="rev_parede")
+            demãos_tinta = st.slider("Número de Demãos de Tinta:", 1, 4, 2, key="rev_demaos")
+        with col2:
+            area_piso = st.number_input("Área de Piso para Revestimento (m²):", min_value=1.0, value=60.0, key="rev_piso")
+            taxa_perda_piso = st.slider("Taxa de Perda de Recorte de Piso (%):", 5, 20, 10, key="rev_perda")
+
+        if st.button("Calcular Revestimento e Acabamento", type="primary", key="btn_calc_rev"):
+            sacos_arg_reboco = (area_rev * 0.025) * 18 # base 2.5cm espessura
+            litros_tinta = (area_rev * demãos_tinta) / 10 # rendimento médio 10m²/litro por demão
+            piso_com_perda = area_piso * (1 + taxa_perda_piso / 100.0)
+
+            st.success("Cálculo de acabamento concluído!")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Argamassa Reboco", f"{sacos_arg_reboco:.1f} sc (20kg)")
+            c2.metric("Tinta Estimada", f"{litros_tinta:.1f} litros")
+            c3.metric("Piso c/ Recorte", f"{piso_com_perda:.1f} m²")
+
+            relatorio_rev = f"""=== CONSTRUTECH TUBARÃO - RELATÓRIO DE ACABAMENTO ===
+Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
+--------------------------------------------------
+Área Reboco/Pintura: {area_rev} m² | Litros Tinta: {litros_tinta:.1f} L
+Área Piso c/ Recorte ({taxa_perda_piso}%): {piso_com_perda:.1f} m²
+==================================================
+Gerado por Construtech Tubarão - Plataforma de Engenharia
+"""
+            st.download_button(
+                label="📥 Baixar Relatório de Acabamento (TXT)",
+                data=relatorio_rev,
+                file_name="Relatorio_Acabamento.txt",
+                mime="text/plain"
+            )
+
+            st.session_state.uso_modulos[modulo] = "bloqueado"
+
+    executar_com_controle_amostra(modulo, conteudo)
+
+elif modulo == "🏠 Cobertura e Telhado":
+    def conteudo():
+        st.subheader("🏠 Quantitativo de Telhas, Caibros e Ripas")
+        col1, col2 = st.columns(2)
+        with col1:
+            proj_chao = st.number_input("Área de Projeção em Planta do Telhado (m²):", min_value=1.0, value=80.0, key="telh_proj")
+            tipo_telha = st.selectbox("Modelo de Telha:", ["Telha Colonial / Cerâmica", "Telha de Fibrocimento", "Telha Metálica / Sanduíche"], key="telh_tipo")
+        with col2:
+            inclinacao = st.slider("Inclinação Estimada (%):", 10, 45, 30, key="telh_inc")
+
+        if st.button("Calcular Estrutura do Telhado", type="primary", key="btn_calc_telh"):
+            area_real = proj_chao * (1 + (inclinacao / 100.0) * 0.3)
+            if "Colonial" in tipo_telha:
+                qtd_telhas = area_real * 16
+            elif "Fibrocimento" in tipo_telha:
+                qtd_telhas = area_real * 0.55
+            else:
+                qtd_telhas = area_real * 1.1
+
+            ml_caibros = area_real * 3.5
+            ml_ripas = area_real * 7.0
+
+            st.success("Dimensionamento de telhado finalizado!")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Área Real do Telhado", f"{area_real:.1f} m²")
+            c2.metric("Quantidade de Telhas", f"{int(qtd_telhas)} un")
+            c3.metric("Madeiramento (Caibros/Ripas)", f"{ml_caibros:.0f}m / {ml_ripas:.0f}m")
+
+            relatorio_telh = f"""=== CONSTRUTECH TUBARÃO - RELATÓRIO DE TELHADO ===
+Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
+--------------------------------------------------
+Área Real: {area_real:.1f} m² | Telhas: {int(qtd_telhas)} un
+==================================================
+Gerado por Construtech Tubarão - Plataforma de Engenharia
+"""
+            st.download_button(
+                label="📥 Baixar Relatório de Telhado (TXT)",
+                data=relatorio_telh,
+                file_name="Relatorio_Telhado.txt",
+                mime="text/plain"
+            )
+
+            st.session_state.uso_modulos[modulo] = "bloqueado"
+
+    executar_com_controle_amostra(modulo, conteudo)
+
+elif modulo == "⚡ Elétrica Básica Residencial":
+    def conteudo():
+        st.subheader("⚡ Estimativa de Eletrodutos, Caixas e Fios")
+        col1, col2 = st.columns(2)
+        with col1:
+            area_casa = st.number_input("Área Construída para Elétrica (m²):", min_value=10.0, value=90.0, key="el_area")
+            qtd_comodos = st.number_input("Número de Cômodos / Quartos / Salas:", min_value=1, value=6, key="el_com")
+        with col2:
+            st.write("Parâmetros automáticos baseados na NBR 5410 para residências.")
+
+        if st.button("Calcular Insumos Elétricos", type="primary", key="btn_calc_eletrica"):
+            m_conduite = area_casa * 2.2
+            caixas_4x2 = qtd_comodos * 5
+            caixas_4x4 = qtd_comodos * 1
+            m_fio_25 = area_casa * 4.5 # tomadas/iluminação
+            m_fio_40 = area_casa * 1.5 # chuveiro/fornos
+
+            st.success("Orçamento elétrico calculado com sucesso!")
+            c1, c2 = st.columns(2)
+            c1.metric("Eletrodutos Corrugados", f"{m_conduite:.1f} metros")
+            c2.metric("Caixas 4x2 / 4x4", f"{caixas_4x2} / {caixas_4x4} un")
+            st.write(f"- Metragem Fio 2,5mm² (Geral): **{m_fio_25:.1f} m**")
+            st.write(f"- Metragem Fio 4,0mm² (Potência): **{m_fio_40:.1f} m**")
+
+            relatorio_el = f"""=== CONSTRUTECH TUBARÃO - RELATÓRIO ELÉTRICO ===
+Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
+--------------------------------------------------
+Eletrodutos: {m_conduite:.1f} m | Caixas 4x2: {caixas_4x2} un
+==================================================
+Gerado por Construtech Tubarão - Plataforma de Engenharia
+"""
+            st.download_button(
+                label="📥 Baixar Relatório Elétrico (TXT)",
+                data=relatorio_el,
+                file_name="Relatorio_Eletrico.txt",
+                mime="text/plain"
+            )
+
+            st.session_state.uso_modulos[modulo] = "bloqueado"
+
+    executar_com_controle_amostra(modulo, conteudo)
+
+elif modulo == "📅 Cronograma Físico-Financeiro (Curva S)":
+    def conteudo():
+        st.subheader("📅 Distribuição de Custos por Etapas da Obra")
+        custo_total_obra = st.number_input("Custo Total Estimado da Obra (R$):", value=150000.0, key="curva_val")
+        
+        if st.button("Gerar Cronograma de Gastos", type="primary", key="btn_calc_curvas"):
+            fase_fundacao = custo_total_obra * 0.15
+            fase_estrutura = custo_total_obra * 0.25
+            fase_alvenaria = custo_total_obra * 0.15
+            fase_cobertura = custo_total_obra * 0.10
+            fase_instalacoes = custo_total_obra * 0.15
+            fase_acabamento = custo_total_obra * 0.20
+
+            st.success("Curva S e Cronograma gerados!")
+            st.write(f"- **1. Fundação (Terraplanagem/Baldrames):** R$ {fase_fundacao:,.2f} (15%)")
+            st.write(f"- **2. Estrutura (Pilares/Vigas/Lajes):** R$ {fase_estrutura:,.2f} (25%)")
+            st.write(f"- **3. Alvenaria e Fechamentos:** R$ {fase_alvenaria:,.2f} (15%)")
+            st.write(f"- **4. Cobertura e Telhado:** R$ {fase_cobertura:,.2f} (10%)")
+            st.write(f"- **5. Instalações (Hidro/Elétrica):** R$ {fase_instalacoes:,.2f} (15%)")
+            st.write(f"- **6. Acabamentos e Pintura:** R$ {fase_acabamento:,.2f} (20%)")
+
+            relatorio_cs = f"""=== CONSTRUTECH TUBARÃO - CRONOGRAMA FINANCEIRO ===
+Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
+--------------------------------------------------
+Custo Total: R$ {custo_total_obra:,.2f}
+==================================================
+Gerado por Construtech Tubarão - Plataforma de Engenharia
+"""
+            st.download_button(
+                label="📥 Baixar Cronograma (TXT)",
+                data=relatorio_cs,
+                file_name="Cronograma_Obra.txt",
+                mime="text/plain"
+            )
+
+            st.session_state.uso_modulos[modulo] = "bloqueado"
+
+    executar_com_controle_amostra(modulo, conteudo)
+
+elif modulo == "📝 Gerador de Contrato de Empreitada":
+    def conteudo():
+        st.subheader("📝 Emissor de Minuta de Contrato de Prestação de Serviços")
+        col1, col2 = st.columns(2)
+        with col1:
+            contratante = st.text_input("Nome do Contratante (Cliente):", value="João da Silva", key="ct_cli")
+            engenheiro_resp = st.text_input("Nome do Engenheiro / Construtor:", value="Futuro Engenheiro", key="ct_eng")
+        with col2:
+            valor_contrato = st.number_input("Valor Total do Contrato (R$):", value=80000.0, key="ct_val")
+            prazo_meses = st.number_input("Prazo de Execução (meses):", min_value=1, value=6, key="ct_mes")
+
+        if st.button("Gerar Contrato Completo", type="primary", key="btn_calc_contrato"):
+            st.success("Contrato gerado com sucesso!")
+            
+            minuta_texto = f"""CONTRATO PARTICULAR DE PRESTAÇÃO DE SERVIÇOS DE ENGENHARIA E CONSTRUÇÃO
+CONSTRUTECH TUBARÃO
+
+CONTRATANTE: {contratante}
+CONSTRUTOR / ENGENHEIRO: {engenheiro_resp}
+
+CLÁUSULA PRIMEIRA - DO OBJETO:
+O presente contrato tem por objeto a execução de serviços de construção civil sob a responsabilidade técnica e operacional da plataforma Construtech Tubarão.
+
+CLÁUSULA SEGUNDA - DO VALOR E FORMA DE PAGAMENTO:
+Pela execução dos serviços, o Contratante pagará o valor global de R$ {valor_contrato:,.2f}, divididos conforme o cronograma físico-finaceiro da obra.
+
+CLÁUSULA TERCEIRA - DO PRAZO:
+O prazo estimado para conclusão total dos serviços é de {prazo_meses} meses, contados a partir da ordem de início.
+
+Data de emissão: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
+Assinatura das Partes: _____________________________________
+"""
+            st.text_area("Visualização do Contrato:", value=minuta_texto, height=250)
+            
+            st.download_button(
+                label="📥 Baixar Minuta do Contrato (TXT)",
+                data=minuta_texto,
+                file_name=f"Contrato_{contratante.replace(' ', '_')}.txt",
                 mime="text/plain"
             )
 
