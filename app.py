@@ -73,14 +73,14 @@ modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
 
 st.sidebar.markdown("---")
 with st.sidebar.expander("🛠️ Painel do Administrador"):
-    st.write("Comprovantes enviados por clientes:")
+    st.write("Comprovantes/Chaves inseridas:")
     if st.session_state.historico_comprovantes:
         for idx, item in enumerate(st.session_state.historico_comprovantes):
             st.text(f"{idx+1}. Mod: {item['modulo']}\nComp: {item['comprovante']}\nData: {item['data']}")
     else:
-        st.write("Nenhum comprovante enviado ainda.")
+        st.write("Nenhum registro ainda.")
 
-if st.sidebar.button("🔄 Resetar Sessão (Simular Fechamento)"):
+if st.sidebar.button("🔄 Resetar Sessão (Simular Novo Cliente)"):
     st.session_state.uso_modulos = {}
     st.session_state.liberado_pago = False
     st.rerun()
@@ -106,15 +106,16 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
 
     status_atual = st.session_state.uso_modulos[nome_modulo]
 
+    # Se estiver bloqueado e não liberado globalmente
     if status_atual == "bloqueado" and not st.session_state.liberado_pago:
-        st.markdown(f'<p class="main-header">🔒 Limite da Amostra Grátis Atingido: {nome_modulo}</p>', unsafe_allow_html=True)
-        st.info("💡 Escolha uma das opções abaixo para realizar o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO**[span_0](start_span)[span_0](end_span) e cole o comprovante ao lado.")
+        st.markdown(f'<p class="main-header">🔒 Amostra Grátis Utilizada: {nome_modulo}</p>', unsafe_allow_html=True)
+        st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando e desbloquear o uso completo, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO**[span_0](start_span)[span_0](end_span) ou insira sua chave de acesso especial.")
 
         st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
         col_pag1, col_pag2 = st.columns(2, gap="large")
 
         with col_pag1:
-            st.markdown("### 1️⃣ Escolha a Forma de Pagamento")
+            st.markdown("### 1️⃣ Forma de Pagamento (Pix / Cartão)")
             st.markdown(
                 '<a href="https://link.infinitepay.io/cristiane-da-260/VC1DLTAtUg-HgBiSH5iQO-20,00" target="_blank" class="btn-pagar">💳 PAGAR COM CARTÃO / LINK</a>',
                 unsafe_allow_html=True
@@ -132,17 +133,17 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
             )
 
         with col_pag2:
-            st.markdown("### 2️⃣ Cole o Comprovante ao Lado")
-            st.markdown("Tanto para Cartão quanto para Pix, cole o código ou ID do comprovante abaixo:")
+            st.markdown("### 2️⃣ Liberar com Comprovante ou Chave")
+            st.markdown("Cole o comprovante de pagamento ou digite a sua chave de liberação abaixo:")
             
             comprovante_texto = st.text_area(
-                "Cole o comprovante / ID da transação aqui:", 
+                "Comprovante ou Chave de Acesso:", 
                 key=f"comp_{nome_modulo}", 
-                placeholder="Ex: Cole aqui os dados do comprovante gerado...",
+                placeholder="Ex: Cole o ID do Pix, comprovante ou digite sua chave...",
                 height=120
             )
             
-            if st.button("✨ Liberar Acesso Automaticamente", key=f"btn_gerar_{nome_modulo}", type="primary", use_container_width=True):
+            if st.button("✨ Validar e Liberar Acesso", key=f"btn_gerar_{nome_modulo}", type="primary", use_container_width=True):
                 if comprovante_texto.strip() != "":
                     data_atual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                     st.session_state.historico_comprovantes.append({
@@ -152,10 +153,10 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
                     })
                     
                     st.session_state.liberado_pago = True
-                    st.success("Comprovante validado e registrado com sucesso! Acesso liberado.")
+                    st.success("Acesso liberado com sucesso!")
                     st.rerun()
                 else:
-                    st.warning("⚠️ Você precisa colar o comprovante na caixa ao lado para liberar o acesso.")
+                    st.warning("⚠️ Insira o comprovante ou a chave de liberação.")
 
         st.markdown('</div>', unsafe_allow_html=True)
         return
@@ -163,7 +164,7 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
     funcao_conteudo()
 
 # ==========================================
-# 5. MÓDULOS DA APLICAÇÃO COM RELATÓRIO EM PDF/TEXTO
+# 5. MÓDULOS DA APLICAÇÃO
 # ==========================================
 
 if modulo == "📊 Visão Geral e BDI":
@@ -197,12 +198,13 @@ Lucro Bruto Estimado: R$ {lucro_estimado:,.2f}
 Gerado por Construtech Tubarão - Plataforma de Engenharia
 """
             st.download_button(
-                label="📥 Baixar Relatório do Cálculo (TXT/PDF)",
+                label="📥 Baixar Relatório do Cálculo (TXT)",
                 data=relatorio_texto,
                 file_name=f"Relatorio_BDI_{cliente.replace(' ', '_')}.txt",
                 mime="text/plain"
             )
 
+            # Bloqueia após o primeiro uso gratuito
             st.session_state.uso_modulos[modulo] = "bloqueado"
 
     executar_com_controle_amostra(modulo, conteudo)
@@ -266,15 +268,12 @@ Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
 Área de Paredes: {area_paredes} m²
 Material: {tipo_material}
 --------------------------------------------------
-- Blocos/Tijolos Totais: {int(total_blocos)} un
-- Sacos de Cimento (50kg): {sacos_c:.1f} sc
-- Areia Média: {m3_a:.2f} m³
 - Custo Total Estimado: R$ {custo_tot:,.2f}
 ==================================================
 Gerado por Construtech Tubarão - Plataforma de Engenharia
 """
             st.download_button(
-                label="📥 Baixar Relatório de Alvenaria (TXT/PDF)",
+                label="📥 Baixar Relatório de Alvenaria (TXT)",
                 data=relatorio_alv,
                 file_name="Relatorio_Alvenaria.txt",
                 mime="text/plain"
@@ -342,18 +341,11 @@ elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
 --------------------------------------------------
 Área da Laje: {area_laje} m²
-Enchimento: {tipo_enchimento}
-Altura: {altura_laje}
---------------------------------------------------
-- Vigotas Pré-moldadas: {ml_vigotas:.1f} m lineares
-- Blocos / Lajotas: {int(qtd_blocos)} un
-- Concreto para Capa: {vol_concreto_com_perda:.2f} m³
-- Sacos de Cimento (Capa): {sacos_cimento_laje:.1f} sc
 ==================================================
 Gerado por Construtech Tubarão - Plataforma de Engenharia
 """
             st.download_button(
-                label="📥 Baixar Relatório de Laje (TXT/PDF)",
+                label="📥 Baixar Relatório de Laje (TXT)",
                 data=relatorio_laje,
                 file_name="Relatorio_Laje.txt",
                 mime="text/plain"
@@ -405,18 +397,12 @@ elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
             relatorio_conc = f"""=== CONSTRUTECH TUBARÃO - RELATÓRIO DE CONCRETO ===
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
 --------------------------------------------------
-Área: {area_concreto} m² | Espessura: {espessura_cm} cm
-Traço: {traco_tipo}
---------------------------------------------------
-- Volume Total com Perda (7%): {volume_real:.2f} m³
-- Sacos de Cimento (50kg): {sc_cif:.1f} sacos
-- Areia Média: {areia_m3:.2f} m³
-- Brita: {brita_m3:.2f} m³
+Volume Total com Perda (7%): {volume_real:.2f} m³
 ==================================================
 Gerado por Construtech Tubarão - Plataforma de Engenharia
 """
             st.download_button(
-                label="📥 Baixar Relatório de Concreto (TXT/PDF)",
+                label="📥 Baixar Relatório de Concreto (TXT)",
                 data=relatorio_conc,
                 file_name="Relatorio_Concreto.txt",
                 mime="text/plain"
@@ -442,16 +428,12 @@ elif modulo == "⚙️ Projeto de Aço, Custo e Auditoria de Armadura":
             relatorio_aco = f"""=== CONSTRUTECH TUBARÃO - AUDITORIA DE AÇO ===
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
 --------------------------------------------------
-Área Construída: {area_obra} m²
-Preço do Aço/kg: R$ {preco_aco_kg:.2f}
---------------------------------------------------
-- Peso Estimado de Aço: {peso_tot:.1f} kg
-- Custo Total Estimado do Aço: R$ {custo_tot_aco:,.2f}
+Custo Total Estimado do Aço: R$ {custo_tot_aco:,.2f}
 ==================================================
 Gerado por Construtech Tubarão - Plataforma de Engenharia
 """
             st.download_button(
-                label="📥 Baixar Relatório de Aço (TXT/PDF)",
+                label="📥 Baixar Relatório de Aço (TXT)",
                 data=relatorio_aco,
                 file_name="Relatorio_Aco.txt",
                 mime="text/plain"
@@ -496,17 +478,12 @@ elif modulo == "🏗️ Estrutural, Vigas, Bitolas e Aços":
             relatorio_vigas = f"""=== CONSTRUTECH TUBARÃO - RELATÓRIO ESTRUTURAL ===
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
 --------------------------------------------------
-Vão Livre: {vao_viga} m | Qtd Peças: {qtd_pecas}
-Bitola Principal: {tipo_bitola_principal}
-Espaçamento de Estribos: {espacamento_estribo}
---------------------------------------------------
-- Peso Total de Ferro: {kg_por_viga:.1f} kg
-- Quantidade de Estribos (6.3mm): {estribos_un} unidades
+Peso Total de Ferro: {kg_por_viga:.1f} kg
 ==================================================
 Gerado por Construtech Tubarão - Plataforma de Engenharia
 """
             st.download_button(
-                label="📥 Baixar Relatório Estrutural (TXT/PDF)",
+                label="📥 Baixar Relatório Estrutural (TXT)",
                 data=relatorio_vigas,
                 file_name="Relatorio_Estrutural.txt",
                 mime="text/plain"
@@ -551,20 +528,12 @@ elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
             relatorio_hid = f"""=== CONSTRUTECH TUBARÃO - RELATÓRIO HIDRÁULICO ===
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
 --------------------------------------------------
-Banheiros: {qtd_banheiros} | Cozinhas: {qtd_cozinhas}
-Distância Fossa: {distancia_fossa} m
---------------------------------------------------
-- Tubo Esgoto 100mm: {cano_esgoto_100:.1f} m
-- Tubo Esgoto 50mm: {cano_esgoto_50:.1f} m
-- Joelhos 100mm: {joelhos_100} un
-- Tubo Água Fria 25mm: {cano_agua_25:.1f} m
-- Joelhos 25mm: {joelhos_25} un
-- Caixa de Gordura: {caixa_gordura} un
+Tubo Esgoto 100mm: {cano_esgoto_100:.1f} m
 ==================================================
 Gerado por Construtech Tubarão - Plataforma de Engenharia
 """
             st.download_button(
-                label="📥 Baixar Relatório Hidráulico (TXT/PDF)",
+                label="📥 Baixar Relatório Hidráulico (TXT)",
                 data=relatorio_hid,
                 file_name="Relatorio_Hidraulico.txt",
                 mime="text/plain"
@@ -589,7 +558,7 @@ Valor Base dos Serviços: R$ {valor_bruto:,.2f}
 Gerado por Construtech Tubarão - Plataforma de Engenharia
 """
             st.download_button(
-                label="📥 Baixar Proposta Comercial (TXT/PDF)",
+                label="📥 Baixar Proposta Comercial (TXT)",
                 data=relatorio_fat,
                 file_name="Proposta_Comercial.txt",
                 mime="text/plain"
