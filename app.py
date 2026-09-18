@@ -100,17 +100,13 @@ st.sidebar.markdown("### ⚡ Ações Rápidas da Obra")
 
 # Botão Sidebar para WhatsApp / Pix
 telefone_zap = "5564993044147"  #[span_0](start_span)[span_0](end_span) Número fornecido anteriormente
-texto_zap = "Olá! Seguem os dados do orçamento e o comprovante do Pix para validação na Construtech Tubarão."
-link_whatsapp = f"https://wa.me/{telefone_zap}?text={datetime.parse_url_safe if 'parse_url_safe' in dir() else ''}{repr(texto_zap)[1:-1]}"
-
 st.sidebar.markdown(
     f'<a href="https://wa.me/{telefone_zap}?text=Ol%C3%A1%2C%20vim%20pelo%20app%20Construtech%20Tubar%C3%A3o%20e%20gostaria%20de%20enviar%20o%20comprovante%20Pix!" target="_blank" style="background-color: #25D366; color: white; padding: 10px 15px; border-radius: 8px; text-decoration: none; font-weight: bold; display: block; text-align: center; margin-bottom: 10px;">💬 Enviar Pix / WhatsApp</a>',
     unsafe_allow_html=True
 )
 
-# Botão Sidebar para gerar resumo em texto/PDF simulado direto no Streamlit
 if st.sidebar.button("📄 Gerar Relatório para Impressão (PDF)", use_container_width=True):
-    st.sidebar.success("Relatório gerado! Role a página para baixo para ver os detalhes da sessão.")
+    st.sidebar.success("Relatório gerado! Verifique os dados na tela para impressão.")
 
 st.sidebar.markdown("---")
 with st.sidebar.expander("🛠️ Painel do Administrador"):
