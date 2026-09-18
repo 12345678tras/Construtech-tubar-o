@@ -13,11 +13,9 @@ st.set_page_config(
 # ==========================================
 # 2. CONTROLE DE TEMA (MODO ESCURO / CLARO)
 # ==========================================
-# Criamos um controle na barra lateral para o usuário escolher o tema
 modo_escuro = st.sidebar.toggle("🌙 Ativar Modo Escuro", value=False)
 
 if modo_escuro:
-    # Estilo CSS para o Modo Escuro
     st.markdown(
         """
         <style>
@@ -32,7 +30,6 @@ if modo_escuro:
         unsafe_allow_html=True,
     )
 else:
-    # Estilo CSS para o Modo Claro (Padrão)
     st.markdown(
         """
         <style>
@@ -75,7 +72,6 @@ lista_modulos = [
 modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
 
 st.sidebar.markdown("---")
-# Painel do Administrador para conferir os comprovantes enviados
 with st.sidebar.expander("🛠️ Painel do Administrador"):
     st.write("Comprovantes enviados por clientes:")
     if st.session_state.historico_comprovantes:
@@ -112,29 +108,24 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
 
     if status_atual == "bloqueado" and not st.session_state.liberado_pago:
         st.markdown(f'<p class="main-header">🔒 Limite da Amostra Grátis Atingido: {nome_modulo}</p>', unsafe_allow_html=True)
-        st.info("💡 Escolha uma das opções abaixo para realizar o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO** e cole o comprovante ao lado.")
+        st.info("💡 Escolha uma das opções abaixo para realizar o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO**[span_0](start_span)[span_0](end_span) e cole o comprovante ao lado.")
 
-        # DIVISÃO LADO A LADO: PAGAMENTO (ESQUERDA) E COMPROVANTE (DIREITA)
         st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
         col_pag1, col_pag2 = st.columns(2, gap="large")
 
         with col_pag1:
             st.markdown("### 1️⃣ Escolha a Forma de Pagamento")
-            
-            # Opção Cartão / Link
             st.markdown(
                 '<a href="https://link.infinitepay.io/cristiane-da-260/VC1DLTAtUg-HgBiSH5iQO-20,00" target="_blank" class="btn-pagar">💳 PAGAR COM CARTÃO / LINK</a>',
                 unsafe_allow_html=True
             )
-            
-            # Opção Pix Direto Logo Abaixo
             st.markdown(
                 """
                 <div class="pix-box-baixo">
                     <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
                     <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
-                    <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>
-                    <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>
+                    <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_1](start_span)[span_1](end_span)
+                    <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_2](start_span)[span_2](end_span)
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -194,7 +185,6 @@ if modulo == "📊 Visão Geral e BDI":
             col_m1.metric("Preço Final de Venda", f"R$ {preco_venda:,.2f}")
             col_m2.metric("Lucro Bruto Estimado", f"R$ {lucro_estimado:,.2f}")
             
-            # Botão para baixar relatório em texto formatado (pronto para imprimir como PDF no navegador)
             relatorio_texto = f"""=== CONSTRUTECH TUBARÃO - RELATÓRIO DE BDI ===
 Projeto/Cliente: {cliente}
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
@@ -591,7 +581,7 @@ elif modulo == "💼 Faturamento e CNPJ":
         if st.button("Emitir Proposta", type="primary", key="btn_calc_fat"):
             st.success(f"Proposta emitida no valor de R$ {valor_bruto:,.2f}!")
             
-            relatorio_fat = f=== CONSTRUTECH TUBARÃO - PROPOSTA COMERCIAL ===
+            relatorio_fat = f"""=== CONSTRUTECH TUBARÃO - PROPOSTA COMERCIAL ===
 Data: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
 --------------------------------------------------
 Valor Base dos Serviços: R$ {valor_bruto:,.2f}
