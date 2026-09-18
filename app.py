@@ -16,8 +16,9 @@ st.markdown(
     .main-header { font-size: 28px; font-weight: bold; color: #1E3A8A; }
     .sub-header { font-size: 16px; color: #4B5563; }
     .box-pagamento { background-color: #F8FAFC; padding: 25px; border-radius: 12px; border: 3px solid #2563EB; margin-bottom: 20px; }
-    .btn-pagar { background-color: #059669; color: white !important; padding: 16px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 18px; display: block; text-align: center; margin-top: 15px; }
+    .btn-pagar { background-color: #059669; color: white !important; padding: 14px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: block; text-align: center; margin-top: 10px; }
     .btn-pagar:hover { background-color: #047857; }
+    .pix-box-baixo { background-color: #ECFDF5; padding: 15px; border-radius: 8px; border: 1px solid #10B981; text-align: center; margin-top: 15px; }
     </style>
 """,
     unsafe_allow_html=True,
@@ -76,27 +77,37 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
 
     if status_atual == "bloqueado" and not st.session_state.liberado_pago:
         st.markdown(f'<p class="main-header">🔒 Limite da Amostra Grátis Atingido: {nome_modulo}</p>', unsafe_allow_html=True)
-        st.info("💡 Você já utilizou o cálculo gratuito desta ferramenta. Efetue o pagamento abaixo para liberar o uso contínuo nesta sessão.")
+        st.info("💡 Escolha uma das opções abaixo para realizar o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO**[span_0](start_span)[span_0](end_span) e cole o comprovante ao lado para liberar o acesso.")
 
         # DIVISÃO LADO A LADO: PAGAMENTO (ESQUERDA) E COMPROVANTE (DIREITA)
         st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
         col_pag1, col_pag2 = st.columns(2, gap="large")
 
         with col_pag1:
-            st.markdown("### 1️⃣ Realize o Pagamento")
-            st.markdown("Confira se o recebedor na página de pagamento é:")
-            st.markdown("<h3 style='color: #059669; background-color: #ECFDF5; padding: 10px; border-radius: 6px; display: inline-block;'>🏢 CAC CONTABILIZANDO</h3>", unsafe_allow_html=True)
-            st.markdown("<p style='font-size: 16px; margin-top: 10px;'>Valor: <b>R$ 20,00</b></p>", unsafe_allow_html=True)
+            st.markdown("### 1️⃣ Escolha a Forma de Pagamento")
             
-            # LINK DE PAGAMENTO SEGURO
+            # Opção Cartão / Link
             st.markdown(
-                '<a href="https://link.infinitepay.io/cristiane-da-260/VC1DLTAtUg-HgBiSH5iQO-20,00" target="_blank" class="btn-pagar">🚀 PAGAR R$ 20,00 AGORA</a>',
+                '<a href="https://link.infinitepay.io/cristiane-da-260/VC1DLTAtUg-HgBiSH5iQO-20,00" target="_blank" class="btn-pagar">💳 PAGAR COM CARTÃO / LINK</a>',
+                unsafe_allow_html=True
+            )
+            
+            # Opção Pix Direto Logo Abaixo
+            st.markdown(
+                """
+                <div class="pix-box-baixo">
+                    <p style="margin: 0 0 5px 0; font-size: 14px; color: #065F46; font-weight: bold;">Ou pague via Pix Direto:</p>
+                    <p style="margin: 0; font-size: 13px; color: #374151;">Chave Pix (Telefone):</p>
+                    <code style="font-size: 16px; background: white; padding: 3px 8px; border-radius: 4px; color: #111827; font-weight: bold;">+5564993044147</code>[span_1](start_span)[span_1](end_span)
+                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #374151;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_2](start_span)[span_2](end_span)
+                </div>
+                """,
                 unsafe_allow_html=True
             )
 
         with col_pag2:
             st.markdown("### 2️⃣ Cole o Comprovante ao Lado")
-            st.markdown("Após concluir o pagamento, cole o código ou ID do comprovante abaixo para liberar o acesso:")
+            st.markdown("Tanto para Cartão quanto para Pix, cole o código ou ID do comprovante abaixo para o sistema liberar:")
             
             comprovante_texto = st.text_area(
                 "Cole o comprovante / ID da transação aqui:", 
@@ -111,7 +122,7 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
                     st.success("Comprovante validado com sucesso! Acesso liberado.")
                     st.rerun()
                 else:
-                    st.warning("⚠️ Cole o comprovante na caixa acima para liberar o acesso.")
+                    st.warning("⚠️ Você precisa colar o comprovante na caixa ao lado para liberar o acesso.")
 
         st.markdown('</div>', unsafe_allow_html=True)
         return
