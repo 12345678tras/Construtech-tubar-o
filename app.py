@@ -73,7 +73,7 @@ if "mensagens_chat" not in st.session_state:
     ]
 
 # ==========================================
-# 4. MENU LATERAL E FERRAMENTAS EXTRAS (PDF & WHATSAPP)
+# 4. MENU LATERAL E PAINEL ADMINISTRADOR
 # ==========================================
 st.sidebar.title("Navegação de Módulos")
 lista_modulos = [
@@ -94,19 +94,6 @@ lista_modulos = [
 ]
 
 modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### ⚡ Ações Rápidas da Obra")
-
-# Botão Sidebar para WhatsApp / Pix
-telefone_zap = "5564993044147"  #[span_0](start_span)[span_0](end_span) Número fornecido anteriormente
-st.sidebar.markdown(
-    f'<a href="https://wa.me/{telefone_zap}?text=Ol%C3%A1%2C%20vim%20pelo%20app%20Construtech%20Tubar%C3%A3o%20e%20gostaria%20de%20enviar%20o%20comprovante%20Pix!" target="_blank" style="background-color: #25D366; color: white; padding: 10px 15px; border-radius: 8px; text-decoration: none; font-weight: bold; display: block; text-align: center; margin-bottom: 10px;">💬 Enviar Pix / WhatsApp</a>',
-    unsafe_allow_html=True
-)
-
-if st.sidebar.button("📄 Gerar Relatório para Impressão (PDF)", use_container_width=True):
-    st.sidebar.success("Relatório gerado! Verifique os dados na tela para impressão.")
 
 st.sidebar.markdown("---")
 with st.sidebar.expander("🛠️ Painel do Administrador"):
@@ -140,7 +127,7 @@ st.markdown(
 st.markdown("---")
 
 # ==========================================
-# FUNÇÃO DE BLOQUEIO DE MÓDULOS APÓS AMOSTRA
+# FUNÇÃO DE BLOQUEIO DE MÓDULOS APÓS AMOSTRA (COM PIX CAC CONTABILIZANDO)
 # ==========================================
 def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
     if nome_modulo not in st.session_state.uso_modulos:
@@ -150,7 +137,7 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
 
     if status_atual == "bloqueado" and not st.session_state.liberado_pago:
         st.markdown(f'<p class="main-header">🔒 Amostra Grátis Utilizada: {nome_modulo}</p>', unsafe_allow_html=True)
-        st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO**[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span) ou insira sua chave de acesso mestre ao lado.")
+        st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO**[span_4](start_span)[span_4](end_span)[span_5](start_span)[span_5](end_span) ou insira sua chave de acesso mestre ao lado.")
 
         st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
         col_pag1, col_pag2 = st.columns(2, gap="large")
@@ -166,8 +153,8 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
                 <div class="pix-box-baixo">
                     <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
                     <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
-                    <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_3](start_span)[span_3](end_span)
-                    <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_4](start_span)[span_4](end_span)
+                    <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_6](start_span)[span_6](end_span)
+                    <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_7](start_span)[span_7](end_span)
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -533,7 +520,7 @@ elif modulo == "💼 Faturamento e CNPJ":
     executar_com_controle_amostra(modulo, conteudo)
 
 # ==========================================
-# 7. ASSISTENTE IA INTEGRADO COM O GEMINI CORRIGIDO
+# 7. ASSISTENTE IA INTEGRADO COM O GEMINI (CORRIGIDO)
 # ==========================================
 elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
     def conteudo_ia():
@@ -574,8 +561,8 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                     <div class="pix-box-baixo">
                         <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
                         <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
-                        <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_5](start_span)[span_5](end_span)
-                        <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_6](start_span)[span_6](end_span)
+                        <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_8](start_span)[span_8](end_span)
+                        <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_9](start_span)[span_9](end_span)
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -618,7 +605,7 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                 with st.chat_message("assistant"):
                     with st.spinner("O Gemini está calculando os parâmetros da obra..."):
                         try:
-                            # CORREÇÃO DO ERRO 404: Atualizado para o modelo ativo 'gemini-2.5-flash'
+                            # Tenta utilizar o modelo padrão atual do Gemini
                             model = genai.GenerativeModel("gemini-2.5-flash")
                             
                             prompt_sistema = (
@@ -637,7 +624,17 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                             response = chat.send_message(f"{prompt_sistema}\n\nDúvida do usuário: {prompt_usuario}")
                             resposta_ia = response.text
                         except Exception as e:
-                            resposta_ia = f"⚠️ Opa, meu irmão! Erro de conexão com o Gemini: {str(e)}"
+                            # Fallback automático caso o modelo de flash mude na API do Google
+                            try:
+                                model_fallback = genai.GenerativeModel("gemini-1.5-flash")
+                                chat_fb = model_fallback.start_chat(history=[
+                                    {"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} 
+                                    for m in st.session_state.mensagens_chat[:-1]
+                                ])
+                                response_fb = chat_fb.send_message(f"Você é o Engenheiro Virtual da Construtech Tubarão. Dúvida: {prompt_usuario}")
+                                resposta_ia = response_fb.text
+                            except Exception as ex:
+                                resposta_ia = f"⚠️ Opa, meu irmão! Erro de conexão com o Gemini: {str(ex)}"
                         
                         st.markdown(resposta_ia)
                         st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
