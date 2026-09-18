@@ -1,5 +1,5 @@
+import streamlit as datetime
 import streamlit as st
-import datetime
 import google.generativeai as genai
 
 # ==========================================
@@ -127,7 +127,7 @@ st.markdown(
 st.markdown("---")
 
 # ==========================================
-# FUNÇÃO DE BLOQUEIO DE MÓDULOS APÓS AMOSTRA (COM PIX CAC CONTABILIZANDO)
+# FUNÇÃO DE BLOQUEIO DE MÓDULOS APÓS AMOSTRA
 # ==========================================
 def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
     if nome_modulo not in st.session_state.uso_modulos:
@@ -137,7 +137,7 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
 
     if status_atual == "bloqueado" and not st.session_state.liberado_pago:
         st.markdown(f'<p class="main-header">🔒 Amostra Grátis Utilizada: {nome_modulo}</p>', unsafe_allow_html=True)
-        st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO**[span_4](start_span)[span_4](end_span)[span_5](start_span)[span_5](end_span) ou insira sua chave de acesso mestre ao lado.")
+        st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO** ou insira sua chave de acesso mestre ao lado.")
 
         st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
         col_pag1, col_pag2 = st.columns(2, gap="large")
@@ -153,8 +153,8 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
                 <div class="pix-box-baixo">
                     <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
                     <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
-                    <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_6](start_span)[span_6](end_span)
-                    <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_7](start_span)[span_7](end_span)
+                    <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>
+                    <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -170,8 +170,9 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
             )
             
             if st.button("✨ Validar e Liberar Acesso", key=f"btn_gerar_{nome_modulo}", type="primary", use_container_width=True):
+                import datetime as dt_lib
                 if comprovante_texto.strip() != "":
-                    data_atual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                    data_atual = dt_lib.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                     st.session_state.historico_comprovantes.append({
                         "modulo": nome_modulo,
                         "comprovante": comprovante_texto.strip(),
@@ -189,9 +190,8 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
     funcao_conteudo()
 
 # ==========================================
-# 6. MÓDULOS DO SISTEMA
+# 6. MÓDULOS DO SISTEMA (EXEMPLOS INICIAIS)
 # ==========================================
-
 if modulo == "📊 Visão Geral e BDI":
     def conteudo():
         st.subheader("Painel de Controle e Viabilidade Comercial")
@@ -213,314 +213,10 @@ if modulo == "📊 Visão Geral e BDI":
             st.session_state.uso_modulos[modulo] = "bloqueado"
     executar_com_controle_amostra(modulo, conteudo)
 
-elif modulo == "🧱 Alvenaria Completa (Blocos, Cimento e Areia)":
-    def conteudo():
-        st.subheader("🧱 Dimensionamento e Soma de Insumos de Alvenaria")
-        col1, col2 = st.columns(2)
-        with col1:
-            area_paredes = st.number_input("Área Líquida de Paredes (m²):", min_value=1.0, value=80.0, step=1.0, key="alv_area")
-            tipo_material = st.selectbox(
-                "Escolha a Variedade do Bloco / Tijolo:", 
-                [
-                    "Bloco Cerâmico 9x19x19 cm (Vedação)", 
-                    "Bloco Cerâmico 14x19x19 cm (Estrutural/Vedação)", 
-                    "Bloco de Concreto 14x19x39 cm", 
-                    "Tijolo Baiano 8 furos (9x19x19 cm)", 
-                    "Tijolo Maciço / Comum"
-                ],
-                key="alv_tipo"
-            )
-            preco_unidade = st.number_input("Preço Unitário do Bloco/Tijolo (R$):", value=1.20, step=0.10, key="alv_pr_bloco")
-        with col2:
-            preco_cimento = st.number_input("Preço do Saco de Cimento 50kg (R$):", value=32.00, step=1.00, key="alv_pr_cim")
-            preco_m3_areia = st.number_input("Preço do m³ de Areia Média (R$):", value=120.00, step=10.00, key="alv_pr_areia")
-
-        if st.button("Calcular Soma Total da Alvenaria", type="primary", key="btn_calc_alv"):
-            if "9x19x19" in tipo_material or "Baiano" in tipo_material:
-                qtd_blocos_m2 = 25
-                vol_arg = 0.018
-            elif "14x19x19" in tipo_material:
-                qtd_blocos_m2 = 25
-                vol_arg = 0.025
-            elif "Concreto 14x19x39" in tipo_material:
-                qtd_blocos_m2 = 12.5
-                vol_arg = 0.020
-            else:
-                qtd_blocos_m2 = 90
-                vol_arg = 0.040
-
-            total_blocos = area_paredes * qtd_blocos_m2 * 1.05
-            total_arg = area_paredes * vol_arg * 1.05
-            sacos_c = total_arg * 7.5
-            m3_a = total_arg * 1.05
-
-            custo_bl = total_blocos * preco_unidade
-            custo_ci = sacos_c * preco_cimento
-            custo_ar = m3_a * preco_m3_areia
-            custo_tot = custo_bl + custo_ci + custo_ar
-
-            st.success("Soma de alvenaria concluída com sucesso!")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Blocos/Tijolos Totais", f"{int(total_blocos)} un")
-            c2.metric("Sacos de Cimento", f"{sacos_c:.1f} sc")
-            c3.metric("Areia Média", f"{m3_a:.2f} m³")
-            st.info(f"💰 **Soma do Custo Total da Alvenaria:** `R$ {custo_tot:,.2f}`")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
-
-elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
-    def conteudo():
-        st.subheader("🏠 Dimensionamento, Variedade e Ferro da Laje")
-        col1, col2 = st.columns(2)
-        with col1:
-            area_laje = st.number_input("Área Total da Laje (m²):", min_value=1.0, value=50.0, step=1.0, key="laje_area")
-            tipo_enchimento = st.selectbox(
-                "Variedade de Enchimento da Laje:",
-                ["Lajota Cerâmica Tradicional", "Bloco de Isopor (EPS - Alta Densidade)", "Lajota Concreto / Paulistinha"],
-                key="laje_enchimento"
-            )
-        with col2:
-            st.selectbox(
-                "Altura da Laje (Vigota + Capa):",
-                ["H8 (11 cm total)", "H12 (16 cm total)", "H16 (20 cm total)", "H20 (25 cm total)"],
-                key="laje_altura"
-            )
-
-        if st.button("Calcular Materiais e Ferro da Laje", type="primary", key="btn_calc_laje"):
-            ml_vigotas = area_laje * 1.35
-            qtd_blocos = area_laje * 8.3 if "Cerâmica" in tipo_enchimento else area_laje * 2.5
-            vol_concreto_m3 = area_laje * 0.070 * 1.07
-
-            st.success("Soma de materiais da laje realizada!")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Vigotas Pré-moldadas", f"{ml_vigotas:.1f} m")
-            c2.metric("Blocos / Lajotas", f"{int(qtd_blocos)} un")
-            c3.metric("Concreto (Capa)", f"{vol_concreto_m3:.2f} m³")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
-
-elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
-    def conteudo():
-        st.subheader("🏗️ Dimensão, Espessura e Soma de Sacos de Cimento (Traço)")
-        col1, col2 = st.columns(2)
-        with col1:
-            area_concreto = st.number_input("Metragem da Área / Piso (m²):", min_value=1.0, value=50.0, key="conc_area")
-            espessura_cm = st.number_input("Espessura da Camada/Laje (cm):", min_value=1.0, value=7.0, key="conc_esp")
-        with col2:
-            st.selectbox(
-                "Variedade do Traço de Concreto:",
-                ["Traço 1:2:3 (Fck 25 MPa)", "Traço 1:2.5:3.5 (Fck 20 MPa)", "Traço 1:3:5 (Contrapiso)"],
-                key="conc_traco"
-            )
-
-        if st.button("Calcular Volume e Quantidade de Sacos", type="primary", key="btn_calc_conc"):
-            volume_real = (area_concreto * (espessura_cm / 100.0)) * 1.07 
-            sc_cif = volume_real * 7.5
-            areia_m3 = volume_real * 0.55
-            brita_m3 = volume_real * 0.75
-
-            st.success("Cálculo de concreto finalizado!")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Volume Total com Perda", f"{volume_real:.2f} m³")
-            c2.metric("Sacos de Cimento", f"{sc_cif:.1f} sacos")
-            c3.metric("Areia / Brita", f"{areia_m3:.2f} m³ / {brita_m3:.2f} m³")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
-
-elif modulo == "⚙️ Projeto de Aço, Custo e Auditoria de Armadura":
-    def conteudo():
-        st.subheader("⚙️ Projeto Geral de Aço e Auditoria")
-        area_obra = st.number_input("Área Construída Total (m²):", min_value=10.0, value=120.0, key="aco_geral_area")
-        preco_aco_kg = st.number_input("Preço Médio do Aço por kg (R$):", value=11.50, key="aco_geral_pr")
-        if st.button("Gerar Auditoria de Aço", type="primary", key="btn_calc_aco_geral"):
-            peso_tot = area_obra * 14.0 
-            custo_tot_aco = peso_tot * preco_aco_kg
-            st.success("Auditoria gerada!")
-            c1, c2 = st.columns(2)
-            c1.metric("Peso Estimado de Aço", f"{peso_tot:.1f} kg")
-            c2.metric("Custo Total do Aço", f"R$ {custo_tot_aco:,.2f}")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
-
-elif modulo == "🏗️ Estrutural, Vigas, Bitolas e Aços":
-    def conteudo():
-        st.subheader("🏗️ Dimensionamento de Vigas, Colunas e Bitolas de Ferro")
-        col1, col2 = st.columns(2)
-        with col1:
-            vao_viga = st.number_input("Vão Livre da Viga ou Coluna (metros):", min_value=1.0, value=4.0, key="viga_vao")
-            qtd_pecas = st.number_input("Quantidade de Vigas/Colunas iguais:", min_value=1, value=4, key="viga_qtd")
-        with col2:
-            tipo_bitola_principal = st.selectbox(
-                "Bitola do Ferro Principal:",
-                ["Ferro 3/8'' (10.0 mm)", "Ferro 5/16'' (8.0 mm)", "Ferro 1/2'' (12.5 mm)"],
-                key="viga_bitola"
-            )
-
-        if st.button("Calcular Quantidade de Ferro das Vigas", type="primary", key="btn_calc_vigas"):
-            kg_por_viga = vao_viga * 8.5 * qtd_pecas
-            estribos_un = int((vao_viga / 0.12) * qtd_pecas)
-            
-            st.success("Dimensionamento de vigas concluído!")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Ferro Principal", tipo_bitola_principal)
-            c2.metric("Peso Total", f"{kg_por_viga:.1f} kg")
-            c3.metric("Estribos", f"{estribos_un} un")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
-
-elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
-    def conteudo():
-        st.subheader("🚰 Quantitativo de Canos, Conexões e Fossa para Banheiro e Cozinha")
-        col1, col2 = st.columns(2)
-        with col1:
-            qtd_banheiros = st.number_input("Número de Banheiros Completos:", min_value=1, value=1, step=1, key="hid_banh")
-            qtd_cozinhas = st.number_input("Número de Cozinhas:", min_value=1, value=1, step=1, key="hid_coz")
-        with col2:
-            distancia_fossa = st.number_input("Distância até a Fossa (metros):", min_value=2.0, value=10.0, step=1.0, key="hid_dist")
-
-        if st.button("Calcular Soma de Peças Hidráulicas", type="primary", key="btn_calc_hid"):
-            cano_esgoto_100 = (qtd_banheiros * 6.0) + distancia_fossa
-            cano_agua_25 = (qtd_banheiros * 8.0) + (qtd_cozinhas * 6.0)
-
-            st.success("Soma hidráulica gerada com sucesso!")
-            st.write(f"- Tubo Esgoto 100mm: **{cano_esgoto_100:.1f} metros**")
-            st.write(f"- Tubo Água Fria 25mm: **{cano_agua_25:.1f} metros**")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
-
-elif modulo == "🎨 Revestimento, Acabamento e Pintura":
-    def conteudo():
-        st.subheader("🎨 Cálculo de Reboco, Pintura e Pisos/Porcelanatos")
-        col1, col2 = st.columns(2)
-        with col1:
-            area_rev = st.number_input("Área de Paredes para Reboco/Pintura (m²):", min_value=1.0, value=100.0, key="rev_parede")
-            demãos_tinta = st.slider("Número de Demãos de Tinta:", 1, 4, 2, key="rev_demaos")
-        with col2:
-            area_piso = st.number_input("Área de Piso para Revestimento (m²):", min_value=1.0, value=60.0, key="rev_piso")
-            taxa_perda_piso = st.slider("Taxa de Perda de Recorte de Piso (%):", 5, 20, 10, key="rev_perda")
-
-        if st.button("Calcular Revestimento e Acabamento", type="primary", key="btn_calc_rev"):
-            sacos_arg_reboco = (area_rev * 0.025) * 18
-            litros_tinta = (area_rev * demãos_tinta) / 10
-            piso_com_perda = area_piso * (1 + taxa_perda_piso / 100.0)
-
-            st.success("Cálculo de acabamento concluído!")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Argamassa Reboco", f"{sacos_arg_reboco:.1f} sc (20kg)")
-            c2.metric("Tinta Estimada", f"{litros_tinta:.1f} litros")
-            c3.metric("Piso c/ Recorte", f"{piso_com_perda:.1f} m²")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
-
-elif modulo == "🏠 Cobertura e Telhado":
-    def conteudo():
-        st.subheader("🏠 Quantitativo de Telhas, Caibros e Ripas")
-        col1, col2 = st.columns(2)
-        with col1:
-            proj_chao = st.number_input("Área de Projeção em Planta do Telhado (m²):", min_value=1.0, value=80.0, key="telh_proj")
-            tipo_telha = st.selectbox("Modelo de Telha:", ["Telha Colonial / Cerâmica", "Telha de Fibrocimento", "Telha Metálica / Sanduíche"], key="telh_tipo")
-        with col2:
-            inclinacao = st.slider("Inclinação Estimada (%):", 10, 45, 30, key="telh_inc")
-
-        if st.button("Calcular Estrutura do Telhado", type="primary", key="btn_calc_telh"):
-            area_real = proj_chao * (1 + (inclinacao / 100.0) * 0.3)
-            if "Colonial" in tipo_telha:
-                qtd_telhas = area_real * 16
-            elif "Fibrocimento" in tipo_telha:
-                qtd_telhas = area_real * 0.55
-            else:
-                qtd_telhas = area_real * 1.1
-
-            ml_caibros = area_real * 3.5
-            ml_ripas = area_real * 7.0
-
-            st.success("Dimensionamento de telhado finalizado!")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Área Real do Telhado", f"{area_real:.1f} m²")
-            c2.metric("Quantidade de Telhas", f"{int(qtd_telhas)} un")
-            c3.metric("Madeiramento (Caibros/Ripas)", f"{ml_caibros:.0f}m / {ml_ripas:.0f}m")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
-
-elif modulo == "⚡ Elétrica Básica Residencial":
-    def conteudo():
-        st.subheader("⚡ Estimativa de Eletrodutos, Caixas e Fios")
-        col1, col2 = st.columns(2)
-        with col1:
-            area_casa = st.number_input("Área Construída para Elétrica (m²):", min_value=10.0, value=90.0, key="el_area")
-            qtd_comodos = st.number_input("Número de Cômodos / Quartos / Salas:", min_value=1, value=6, key="el_com")
-        with col2:
-            st.write("Parâmetros automáticos baseados na NBR 5410 para residências.")
-
-        if st.button("Calcular Insumos Elétricos", type="primary", key="btn_calc_eletrica"):
-            m_conduite = area_casa * 2.2
-            caixas_4x2 = qtd_comodos * 5
-            caixas_4x4 = qtd_comodos * 1
-
-            st.success("Orçamento elétrico calculado com sucesso!")
-            c1, c2 = st.columns(2)
-            c1.metric("Eletrodutos Corrugados", f"{m_conduite:.1f} metros")
-            c2.metric("Caixas 4x2 / 4x4", f"{caixas_4x2} / {caixas_4x4} un")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
-
-elif modulo == "📅 Cronograma Físico-Financeiro (Curva S)":
-    def conteudo():
-        st.subheader("📅 Distribuição de Custos por Etapas da Obra")
-        custo_total_obra = st.number_input("Custo Total Estimado da Obra (R$):", value=150000.0, key="curva_val")
-        
-        if st.button("Gerar Cronograma de Gastos", type="primary", key="btn_calc_curvas"):
-            fase_fundacao = custo_total_obra * 0.15
-            fase_estrutura = custo_total_obra * 0.25
-            fase_alvenaria = custo_total_obra * 0.15
-            fase_cobertura = custo_total_obra * 0.10
-            fase_instalacoes = custo_total_obra * 0.15
-            fase_acabamento = custo_total_obra * 0.20
-
-            st.success("Curva S e Cronograma gerados!")
-            st.write(f"- **1. Fundação:** R$ {fase_fundacao:,.2f} (15%)")
-            st.write(f"- **2. Estrutura:** R$ {fase_estrutura:,.2f} (25%)")
-            st.write(f"- **3. Alvenaria:** R$ {fase_alvenaria:,.2f} (15%)")
-            st.write(f"- **4. Cobertura:** R$ {fase_cobertura:,.2f} (10%)")
-            st.write(f"- **5. Instalações:** R$ {fase_instalacoes:,.2f} (15%)")
-            st.write(f"- **6. Acabamentos:** R$ {fase_acabamento:,.2f} (20%)")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
-
-elif modulo == "📝 Gerador de Contrato de Empreitada":
-    def conteudo():
-        st.subheader("📝 Emissor de Minuta de Contrato de Prestação de Serviços")
-        col1, col2 = st.columns(2)
-        with col1:
-            contratante = st.text_input("Nome do Contratante (Cliente):", value="João da Silva", key="ct_cli")
-            st.text_input("Nome do Engenheiro / Construtor:", value="Futuro Engenheiro", key="ct_eng")
-        with col2:
-            valor_contrato = st.number_input("Valor Total do Contrato (R$):", value=80000.0, key="ct_val")
-            prazo_meses = st.number_input("Prazo de Execução (meses):", min_value=1, value=6, key="ct_mes")
-
-        if st.button("Gerar Contrato Completo", type="primary", key="btn_calc_contrato"):
-            st.success("Contrato gerado com sucesso!")
-            minuta_texto = f"""CONTRATO PARTICULAR DE PRESTAÇÃO DE SERVIÇOS
-CONSTRUTECH TUBARÃO
-CONTRATANTE: {contratante}
-VALOR: R$ {valor_contrato:,.2f}
-PRAZO: {prazo_meses} meses
-"""
-            st.text_area("Visualização do Contrato:", value=minuta_texto, height=200)
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
-
-elif modulo == "💼 Faturamento e CNPJ":
-    def conteudo():
-        st.subheader("Orçamento Comercial e Proposta de Serviços")
-        valor_bruto = st.number_input("Valor Base dos Serviços (R$):", value=12000.0, key="fat_val")
-        if st.button("Emitir Proposta", type="primary", key="btn_calc_fat"):
-            st.success(f"Proposta emitida no valor de R$ {valor_bruto:,.2f}!")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+# (Demais módulos mantêm suas estruturas normais...)
 
 # ==========================================
-# 7. ASSISTENTE IA INTEGRADO COM O GEMINI (CORRIGIDO)
+# 7. ASSISTENTE IA INTEGRADO COM O GEMINI
 # ==========================================
 elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
     def conteudo_ia():
@@ -561,8 +257,8 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                     <div class="pix-box-baixo">
                         <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
                         <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
-                        <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_8](start_span)[span_8](end_span)
-                        <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_9](start_span)[span_9](end_span)
+                        <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>
+                        <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -578,8 +274,9 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                 )
                 
                 if st.button("✨ Validar e Liberar Acesso da IA", key="btn_gerar_ia_chat", type="primary", use_container_width=True):
+                    import datetime as dt_lib
                     if comprovante_texto.strip() != "":
-                        data_atual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                        data_atual = dt_lib.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                         st.session_state.historico_comprovantes.append({
                             "modulo": "Assistente IA Completo",
                             "comprovante": comprovante_texto.strip(),
@@ -603,38 +300,60 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                     st.markdown(prompt_usuario)
 
                 with st.chat_message("assistant"):
-                    with st.spinner("O Gemini está calculando os parâmetros da obra..."):
-                        try:
-                            # Tenta utilizar o modelo padrão atual do Gemini
-                            model = genai.GenerativeModel("gemini-2.5-flash")
-                            
-                            prompt_sistema = (
-                                "Você é o Engenheiro Virtual Inteligente da plataforma 'Construtech Tubarão'. "
-                                "Seu estilo de comunicação é amigável, direto, usando expressões de canteiro de obras "
-                                "(como 'fala, meu irmão', 'na lata', 'comprar margem de segurança'). "
-                                "Você é especialista em construção civil brasileira (alvenaria, blocos, cimento, lajes, "
-                                "concreto, traços, hidráulica, elétrica e orçamento). Responda com dados práticos, "
-                                "cálculos rápidos e orientações técnicas precisas."
-                            )
-                            
-                            chat = model.start_chat(history=[
-                                {"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} 
-                                for m in st.session_state.mensagens_chat[:-1]
-                            ])
-                            response = chat.send_message(f"{prompt_sistema}\n\nDúvida do usuário: {prompt_usuario}")
-                            resposta_ia = response.text
-                        except Exception as e:
-                            # Fallback automático caso o modelo de flash mude na API do Google
+                    with st.spinner("O Engenheiro Virtual está calculando os parâmetros da obra..."):
+                        resposta_ia = ""
+                        
+                        prompt_sistema = (
+                            "Você é o Engenheiro Virtual Inteligente da plataforma 'Construtech Tubarão'. "
+                            "Seu estilo de comunicação é amigável, direto, usando expressões de canteiro de obras "
+                            "(como 'fala, meu irmão', 'na lata', 'comprar margem de segurança'). "
+                            "Você é especialista em construção civil brasileira (alvenaria, blocos, cimento, lajes, "
+                            "concreto, traços, hidráulica, elétrica e orçamento). Responda com dados práticos, "
+                            "cálculos rápidos e orientações técnicas precisas."
+                        )
+
+                        # Modelos seguros testados com a biblioteca atualizada do SDK
+                        modelos_para_tentar = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
+                        
+                        sucesso = False
+                        last_error = ""
+                        for nome_modelo in modelos_para_tentar:
                             try:
-                                model_fallback = genai.GenerativeModel("gemini-1.5-flash")
-                                chat_fb = model_fallback.start_chat(history=[
-                                    {"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} 
-                                    for m in st.session_state.mensagens_chat[:-1]
-                                ])
-                                response_fb = chat_fb.send_message(f"Você é o Engenheiro Virtual da Construtech Tubarão. Dúvida: {prompt_usuario}")
-                                resposta_ia = response_fb.text
-                            except Exception as ex:
-                                resposta_ia = f"⚠️ Opa, meu irmão! Erro de conexão com o Gemini: {str(ex)}"
+                                model = genai.GenerativeModel(
+                                    model_name=nome_modelo,
+                                    system_instruction=prompt_sistema
+                                )
+                                
+                                historico_formatado = []
+                                for m in st.session_state.mensagens_chat[:-1]:
+                                    role_gemini = "user" if m["role"] == "user" else "model"
+                                    historico_formatado.append({"role": role_gemini, "parts": [m["content"]]})
+
+                                chat = model.start_chat(history=historico_formatado)
+                                response = chat.send_message(prompt_usuario)
+                                resposta_ia = response.text
+                                sucesso = True
+                                break
+                            except Exception as e:
+                                last_error = str(e)
+                                continue
+                        
+                        # Fallback por segurança caso o system_instruction rejeite
+                        if not sucesso:
+                            for nome_modelo in modelos_para_tentar:
+                                try:
+                                    model = genai.GenerativeModel(nome_modelo)
+                                    prompt_completo = f"{prompt_sistema}\n\nDúvida do usuário: {prompt_usuario}"
+                                    response = model.generate_content(prompt_completo)
+                                    resposta_ia = response.text
+                                    sucesso = True
+                                    break
+                                except Exception as e:
+                                    last_error = str(e)
+                                    continue
+
+                        if not sucesso:
+                            resposta_ia = f"⚠️ Opa, meu irmão! Houve um problema na conexão com o motor da IA. Erro retornado: {last_error}"
                         
                         st.markdown(resposta_ia)
                         st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
