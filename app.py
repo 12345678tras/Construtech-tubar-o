@@ -21,6 +21,36 @@ st.markdown(
 )
 
 # ==========================================
+# 1.1. CONTROLE DE ACESSO E PAGAMENTO (LOGIN ÚNICO)
+# ==========================================
+if "acesso_liberado" not in st.session_state:
+    st.session_state.acesso_liberado = False
+
+if not st.session_state.acesso_liberado:
+    st.markdown('<p class="main-header">🔐 Construtech Tubarão - Acesso Restrito</p>', unsafe_allow_html=True)
+    st.write("Para acessar os módulos de dimensionamento e ver os resultados completos, por favor realize o seu identificador de acesso ou liberação de pagamento.")
+    
+    col_l1, col_l2 = st.columns(2)
+    with col_l1:
+        email_usuario = st.text_input("Seu E-mail ou Telefone de Cadastro:", key="login_email")
+    with col_l2:
+        codigo_liberacao = st.text_input("Código de Acesso / Chave de Pagamento:", type="password", key="login_codigo")
+
+    col_btn1, col_btn2 = st.columns([1, 3])
+    with col_btn1:
+        if st.button("Entrar na Plataforma", type="primary", key="btn_fazer_login"):
+            # Libera o acesso se preenchido (ou você pode definir uma regra de chave específica)
+            if email_usuario:
+                st.session_state.acesso_liberado = True
+                st.rerun()
+            else:
+                st.warning("Por favor, informe seu e-mail ou identificador para continuar.")
+    with col_btn2:
+        st.info("💡 **Aviso:** O acesso é validado após a confirmação do pagamento/assinatura da ferramenta.")
+    
+    st.stop() # Interrompe a execução para não mostrar o restante sem estar logado
+
+# ==========================================
 # 2. MENU LATERAL
 # ==========================================
 st.sidebar.title("Navegação de Módulos")
@@ -37,6 +67,11 @@ modulo = st.sidebar.selectbox(
         "💼 Faturamento e CNPJ",
     ],
 )
+
+# Botão para sair / encerrar sessão no menu lateral se quiser
+if st.sidebar.button("🔒 Sair / Bloquear Acesso"):
+    st.session_state.acesso_liberado = False
+    st.rerun()
 
 # ==========================================
 # 3. CABEÇALHO DA APLICAÇÃO
@@ -168,7 +203,7 @@ elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
             vol_concreto_m3 = area_laje * 0.100
 
         vol_concreto_com_perda = vol_concreto_m3 * 1.07
-        sacos_cimento_laje = vol_concreto_com_perda * 6.5 # traço padrão capa
+        sacos_cimento_laje = vol_concreto_com_perda * 6.5 
         qtd_malha_pop = area_laje / 4.5
 
         st.success("Soma de materiais da laje realizada!")
@@ -202,8 +237,7 @@ elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
         )
 
     if st.button("Calcular Volume e Quantidade de Sacos", type="primary", key="btn_calc_conc"):
-        volume_real = (area_concreto * (espessura_cm / 100.0)) * 1.07 # com 7% perda
-        # Consumo aproximado por m3 dependendo do traço
+        volume_real = (area_concreto * (espessura_cm / 100.0)) * 1.07 
         if "25 MPa" in traco_tipo:
             sc_cif = volume_real * 7.5
             areia_m3 = volume_real * 0.55
@@ -228,7 +262,7 @@ elif modulo == "⚙️ Projeto de Aço, Custo e Auditoria de Armadura":
     area_obra = st.number_input("Área Construída Total (m²):", min_value=10.0, value=120.0, key="aco_geral_area")
     preco_aco_kg = st.number_input("Preço Médio do Aço por kg (R$):", value=11.50, key="aco_geral_pr")
     if st.button("Gerar Auditoria de Aço", type="primary", key="btn_calc_aco_geral"):
-        peso_tot = area_obra * 14.0 # média estrutural
+        peso_tot = area_obra * 14.0 
         custo_tot_aco = peso_tot * preco_aco_kg
         st.success("Auditoria gerada!")
         c1, c2 = st.columns(2)
@@ -257,7 +291,6 @@ elif modulo == "🏗️ Estrutural, Vigas, Bitolas e Aços":
         )
 
     if st.button("Calcular Quantidade de Ferro das Vigas", type="primary", key="btn_calc_vigas"):
-        # Cálculo prático de kg de aço para vigas com base no vão e quantidade
         kg_por_viga = vao_viga * 8.5 * qtd_pecas
         estribos_un = int((vao_viga / 0.12) * qtd_pecas)
         
@@ -279,7 +312,6 @@ elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
         incluir_fossa = st.checkbox("Incluir Orçamento de Fossa Séptica + Sumidouro", value=True, key="hid_fos")
 
     if st.button("Calcular Soma de Peças Hidráulicas", type="primary", key="btn_calc_hid"):
-        # Soma hidráulica detalhada
         cano_esgoto_100 = (qtd_banheiros * 6.0) + distancia_fossa
         cano_esgoto_50 = qtd_banheiros * 5.0 + (qtd_cozinhas * 4.0)
         cano_agua_25 = (qtd_banheiros * 8.0) + (qtd_cozinhas * 6.0)
