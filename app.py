@@ -1,23 +1,57 @@
 import streamlit as st
 import datetime
-# Importando a biblioteca oficial do Gemini
 import google.generativeai as genai
+
+# ==========================================
+# CONFIGURAÇÃO INICIAL DA PÁGINA
+# ==========================================
+st.set_page_config(page_title="Construtech Tubarão", page_icon="🏗️", layout="wide")
+
+# Inicialização segura das variáveis de estado (Session State)
+if "contador_ia_gratis" not in st.session_state:
+    st.session_state.contador_ia_gratis = 0
+
+if "liberado_pago" not in st.session_state:
+    st.session_state.liberado_pago = False
+
+if "mensagens_chat" not in st.session_state:
+    st.session_state.mensagens_chat = [
+        {"role": "assistant", "content": "Fala, meu irmão! Sou o engenheiro virtual da Construtech Tubarão. Como posso te ajudar na obra hoje?"}
+    ]
+
+if "historico_comprovantes" not in st.session_state:
+    st.session_state.historico_comprovantes = []
+
+# ==========================================
+# MENU LATERAL (SIDEBAR)
+# ==========================================
+st.sidebar.title("🏗️ Construtech Tubarão")
+st.sidebar.markdown("---")
+
+modulo = st.sidebar.selectbox(
+    "Escolha o Módulo:",
+    [
+        "🤖 Assistente IA (Engenheiro Virtual Inteligente)",
+        "📊 Outros Módulos / Ferramentas"
+    ]
+)
+
+# Função auxiliar de exemplo para controle de amostragem/módulos
+def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
+    funcao_conteudo()
 
 # ==========================================
 # 7. ASSISTENTE IA INTEGRADO COM O GEMINI
 # ==========================================
-elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
+if modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
     def conteudo_ia():
         st.subheader("🤖 Engenheiro Virtual Inteligente (Powered by Gemini) - Construtech Tubarão")
         
-        # Configuração da Chave do Gemini (Busca nas Secrets do Streamlit ou você pode colar direto se preferir)
+        # Configuração da Chave do Gemini usando as Secrets do Streamlit
         try:
             api_key = st.secrets["GEMINI_API_KEY"]
             genai.configure(api_key=api_key)
         except Exception:
-            # Caso não esteja nas secrets, você pode colar sua chave aqui entre aspas se estiver testando local:
-            # api_key = "SUA_CHAVE_API_DO_GEMINI_AQUI"
-            # genai.configure(api_key=api_key)
             pass
 
         # Limite estrito de 3 consultas gratuitas
@@ -51,7 +85,7 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                 )
                 st.markdown(
                     """
-                    <div class="pix-box-baixo">
+                    <div class="pix-box-baixo" style="margin-top: 15px;">
                         <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
                         <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
                         <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_2](start_span)[span_2](end_span)
@@ -101,33 +135,24 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                 with st.chat_message("assistant"):
                     with st.spinner("O Gemini está calculando os parâmetros da obra..."):
                         try:
-                            # Configurando o modelo e a persona de engenheiro bruto/amigável
                             model = genai.GenerativeModel("gemini-1.5-flash")
-                            
                             prompt_sistema = (
                                 "Você é o Engenheiro Virtual Inteligente da plataforma 'Construtech Tubarão'. "
                                 "Seu estilo de comunicação é amigável, direto, usando expressões de canteiro de obras "
                                 "(como 'fala, meu irmão', 'na lata', 'comprar margem de segurança'). "
                                 "Você é especialista em construção civil brasileira (alvenaria, blocos, cimento, lajes, "
                                 "concreto, traços, hidráulica, elétrica e orçamento). Responda com dados práticos, "
-                                "cálculos rápidos e orientações técnicas precisas baseadas na realidade de obras."
+                                "cálculos rápidos e orientações técnicas precisas."
                             )
                             
-                            # Histórico para o Gemini manter o contexto da conversa
                             chat = model.start_chat(history=[
                                 {"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} 
                                 for m in st.session_state.mensagens_chat[:-1]
                             ])
-                            
                             response = chat.send_message(f"{prompt_sistema}\n\nDúvida do usuário: {prompt_usuario}")
                             resposta_ia = response.text
-
                         except Exception as e:
-                            resposta_ia = (
-                                f"⚠️ Opa, meu irmão! Houve um pequeno problema de conexão com o motor do Gemini "
-                                f"(Erro: {str(e)}). Verifique se a chave de API (`GEMINI_API_KEY`) está configurada corretamente "
-                                f"nas secrets do seu projeto."
-                            )
+                            resposta_ia = f"⚠️ Opa, meu irmão! Erro de conexão com o Gemini: {str(e)}. Verifique se a chave de API está configurada nas Secrets."
                         
                         st.markdown(resposta_ia)
                         st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
@@ -135,3 +160,10 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                 st.rerun()
 
     executar_com_controle_amostra("Assistente IA (Engenheiro Virtual Inteligente)", conteudo_ia)
+
+else:
+    def conteudo_outros():
+        st.subheader("📊 Outros Módulos e Ferramentas")
+        st.write("Módulo em funcionamento padrão.")
+    
+    executar_com_controle_amostra("Outros Módulos", conteudo_outros)
