@@ -1,6 +1,7 @@
 import streamlit as st
 import datetime
-import google.generativeai as genai
+import requests
+import json
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA
@@ -519,15 +520,16 @@ elif modulo == "💼 Faturamento e CNPJ":
     executar_com_controle_amostra(modulo, conteudo)
 
 # ==========================================
-# 7. ASSISTENTE IA INTEGRADO COM O GEMINI
+# 7. ASSISTENTE IA INTEGRADO COM O GEMINI (VIA API DIRETA)
 # ==========================================
 elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
     def conteudo_ia():
         st.subheader("🤖 Engenheiro Virtual Inteligente (Powered by Gemini) - Construtech Tubarão")
         
+        # Recupera a API Key dos secrets com segurança
+        api_key = ""
         try:
             api_key = st.secrets["GEMINI_API_KEY"]
-            genai.configure(api_key=api_key)
         except Exception:
             pass
 
@@ -614,14 +616,27 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                         )
 
                         try:
-                            # CORRIGIDO PARA O MODELO ATUAL SUPORTADO PELO SDK: gemini-1.5-flash
-                            model = genai.GenerativeModel("gemini-1.5-flash")
+                            # Requisição HTTP direta para a API do Gemini (evita erros de versão da biblioteca)
+                            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
                             
                             historico_texto = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in st.session_state.mensagens_chat])
-                            prompt_completo = f"{prompt_sistema}\n\nHistórico da conversa:\n{historico_texto}\n\nResponda à última mensagem do usuário mantendo o personagem."
+                            conteudo_prompt = f"{prompt_sistema}\n\nHistórico da conversa:\n{historico_texto}\n\nResponda à última mensagem do usuário mantendo o personagem."
                             
-                            response = model.generate_content(prompt_completo)
-                            resposta_ia = response.text
+                            payload = {
+                                "contents": [{
+                                    "parts": [{"text": conteudo_prompt}]
+                                }]
+                            }
+                            headers = {'Content-Type': 'application/json'}
+                            
+                            response = requests.post(url, headers=headers, data=json.dumps(payload))
+                            
+                            if response.status_code == 200:
+                                res_json = response.json()
+                                resposta_ia = res_json['candidates'][0]['content']['parts'][0]['text']
+                            else:
+                                resposta_ia = f"⚠️ Opa, meu irmão! Erro na API (Código {response.status_code}): {response.text}"
+                                
                         except Exception as e:
                             resposta_ia = f"⚠️ Opa, meu irmão! Erro de conexão com a IA: {str(e)}"
                         
