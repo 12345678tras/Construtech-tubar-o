@@ -612,7 +612,8 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                         )
 
                         try:
-                            url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}"
+                            # URL corrigida com o modelo gemini-1.5-flash atualizado na v1
+                            url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
                             
                             historico_texto = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in st.session_state.mensagens_chat])
                             conteudo_prompt = f"{prompt_sistema}\n\nHistórico:\n{historico_texto}\n\nResponda à última mensagem:"
