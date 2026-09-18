@@ -22,17 +22,17 @@ st.markdown(
 # ==========================================
 # 1.1. CONTROLE DE AMOSTRA GRÁTIS (1º ACESSO LIVRE)
 # ==========================================
-# Inicializa o controle no navegador do usuário
-if "sessao_iniciada" not in st.session_state:
-    st.session_state.sessao_iniciada = False
-
+# Inicializa os estados na sessão do Streamlit
 if "amostra_ja_consumida" not in st.session_state:
     st.session_state.amostra_ja_consumida = False
 
 if "liberado_pago" not in st.session_state:
     st.session_state.liberado_pago = False
 
-# Se a pessoa já consumiu a amostra em uma visita anterior e não pagou, bloqueia
+if "primeiro_acesso_em_andamento" not in st.session_state:
+    st.session_state.primeiro_acesso_em_andamento = True
+
+# Se a amostra já foi consumida E o usuário não pagou, aí sim bloqueia a tela de acesso
 if st.session_state.amostra_ja_consumida and not st.session_state.liberado_pago:
     st.markdown('<p class="main-header">🔒 Acesso Expirado - Amostra Grátis Utilizada</p>', unsafe_allow_html=True)
     st.info("💡 Você já utilizou o seu **1º acesso gratuito** completo neste dispositivo. Para continuar acessando os módulos e realizando novos cálculos, por favor insira a sua chave de pagamento ou código de liberação abaixo.")
@@ -53,12 +53,6 @@ if st.session_state.amostra_ja_consumida and not st.session_state.liberado_pago:
     
     st.stop()
 
-# Se é a primeira vez abrindo agora, marca que a sessão está ativa
-if not st.session_state.sessao_iniciada:
-    st.session_state.sessao_iniciada = True
-    # Daqui a pouco, quando fechar ou simular o fim do 1º acesso, marcamos como consumida
-    st.session_state.amostra_ja_consumida = True
-
 # ==========================================
 # 2. MENU LATERAL
 # ==========================================
@@ -77,8 +71,16 @@ modulo = st.sidebar.selectbox(
     ],
 )
 
-# Botão auxiliar no menu para você testar o bloqueio simulando que fechou e voltou
-if st.sidebar.button("🔄 Simular Fechar e Voltar (Testar Bloqueio)"):
+# Botão no menu lateral para simular o cliente tentando voltar/acessar de novo depois
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🧪 Controle de Teste")
+if st.sidebar.button("🔄 Simular 'Voltar de Novo' (Bloquear)"):
+    st.session_state.amostra_ja_consumida = True
+    st.session_state.liberado_pago = False
+    st.rerun()
+
+if st.sidebar.button("🔓 Resetar para Novo Visitante"):
+    st.session_state.amostra_ja_consumida = False
     st.session_state.liberado_pago = False
     st.rerun()
 
