@@ -21,7 +21,7 @@ st.markdown(
 )
 
 # ==========================================
-# 2. MENU LATERAL (MANTIDO EXATAMENTE IGUAL)
+# 2. MENU LATERAL
 # ==========================================
 st.sidebar.title("Navegação de Módulos")
 modulo = st.sidebar.selectbox(
@@ -128,7 +128,7 @@ elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
 
     col1, col2 = st.columns(2)
     with col1:
-        area_laje = st.number_input("Área Total da Laje (m²):", min_value=1.0, value=50.0, step=1.0, key="inp_area_laje")
+        area_laje = st.number_input("Área Total da Laje (m²):", min_value=1.0, value=50.0, step=1.0, key="inp_area_laje_v2")
         tipo_enchimento = st.selectbox(
             "Material de Enchimento (Lajota/Bloco):",
             [
@@ -136,7 +136,7 @@ elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
                 "Bloco de Isopor (EPS - Alta Densidade)",
                 "Lajota Concreto / Paulistinha"
             ],
-            key="inp_enchimento_laje"
+            key="inp_enchimento_laje_v2"
         )
     with col2:
         altura_laje = st.selectbox(
@@ -147,7 +147,7 @@ elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
                 "H16 (16 cm vigota + 4 cm capa = 20 cm total) - Vãos Maiores / Sobrados",
                 "H20 (20 cm vigota + 5 cm capa = 25 cm total) - Grandes Cargas"
             ],
-            key="inp_altura_laje"
+            key="inp_altura_laje_v2"
         )
         sobrecarga_util = st.selectbox(
             "Utilização da Laje:",
@@ -156,11 +156,11 @@ elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
                 "Forro / Cobertura sem Acesso (100 kg/m²)",
                 "Comercial / Escritório (250 kg/m²)"
             ],
-            key="inp_sobrecarga_laje"
+            key="inp_sobrecarga_laje_v2"
         )
 
-    # BOTÃO DIRETO E SEM TRAVAS
-    if st.button("Calcular Materiais da Laje", type="primary", key="btn_calcular_laje_direto"):
+    # Botão de cálculo com a exibição de resultados restaurada e garantida
+    if st.button("Calcular Materiais da Laje", type="primary", key="btn_calcular_laje_v2"):
         ml_vigotas = area_laje * 1.35
         
         if "Cerâmica" in tipo_enchimento:
