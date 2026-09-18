@@ -137,7 +137,7 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
 
     if status_atual == "bloqueado" and not st.session_state.liberado_pago:
         st.markdown(f'<p class="main-header">🔒 Amostra Grátis Utilizada: {nome_modulo}</p>', unsafe_allow_html=True)
-        st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO**[span_0](start_span)[span_0](end_span) ou insira sua chave de acesso mestre ao lado.")
+        st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO** ou insira sua chave de acesso mestre ao lado.")
 
         st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
         col_pag1, col_pag2 = st.columns(2, gap="large")
@@ -153,8 +153,8 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
                 <div class="pix-box-baixo">
                     <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
                     <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
-                    <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_1](start_span)[span_1](end_span)
-                    <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_2](start_span)[span_2](end_span)
+                    <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_2](start_span)[span_2](end_span)
+                    <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_3](start_span)[span_3](end_span)
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -520,7 +520,7 @@ elif modulo == "💼 Faturamento e CNPJ":
     executar_com_controle_amostra(modulo, conteudo)
 
 # ==========================================
-# 7. ASSISTENTE IA COM RECONHECIMENTO AMPLO DE GÍRIAS DE OBRA
+# 7. ASSISTENTE IA PADRONIZADO E INTELIGENTE
 # ==========================================
 elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
     def conteudo_ia():
@@ -554,8 +554,8 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                     <div class="pix-box-baixo">
                         <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
                         <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
-                        <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_3](start_span)[span_3](end_span)
-                        <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_4](start_span)[span_4](end_span)
+                        <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>
+                        <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -599,7 +599,7 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                     with st.spinner("Consultando parâmetros de canteiro..."):
                         pergunta_lower = prompt_usuario.lower()
                         
-                        # Motor IA Inteligente para Gírias e Linguagem Simples de Obra
+                        # Motor IA Inteligente Avançado para Gírias e Linguagem Simples de Obra
                         if any(p in pergunta_lower for p in ["tijolo", "bloco", "tijolao", "tijolão", "material", "parede", "muro", "erguer", "levantar", "quantos"]):
                             if any(p in pergunta_lower for p in ["cimento", "argamassa", "reboco", "concreto", "chão", "piso", "contrapiso"]):
                                 resposta_ia = (
@@ -613,7 +613,7 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                                     "- **Tijolo Baiano / Bloco Cerâmico (9x19x19cm):** Gasta uns **25 tijolos por m²** de parede.\n"
                                     "- **Bloco de Concreto (14x19x39cm):** Gasta uns **12,5 blocos por m²**.\n"
                                     "- **Tijolo Maciço (comum):** Gasta uns **90 a 100 tijolos por m²** (em pé).\n\n"
-                                    "*(Dica: Compre sempre **5% a mais** para quebras!)*"
+                                    "*(Dica de mestre: Compre sempre **5% a mais** para perdas e quebras!)*"
                                 )
 
                         elif any(p in pergunta_lower for p in ["cimento", "saco", "sacos", "pó", "po", "argamassa", "reboco", "chapisco", "piso", "contrapiso", "concreto"]):
@@ -639,21 +639,22 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                             resposta_ia = (
                                 "⚙️ **Ferro e Aço (Vigas e Colunas):**\n\n"
                                 "Para casas térreas comuns, a média fica em torno de **14 kg de aço por metro quadrado (m²)** de construção.\n"
-                                "Use sempre ferro de boa procedência conforme as orientações de projeto!"
+                                "Sempre siga as diretrizes estruturais do seu projetista!"
                             )
 
                         elif any(p in pergunta_lower for p in ["agua", "água", "esgoto", "cano", "tubo", "banheiro", "cozinha", "fossa"]):
                             resposta_ia = (
                                 "🚰 **Hidráulica (Canos e Saídas):**\n\n"
-                                "- Para **água fria**, use cano de **25mm**.\n"
-                                "- Para **esgoto**, use cano de **100mm** na saída do vaso e **40mm/50mm** para pias e ralos."
+                                "- Para **água fria**, utilize tubos de **25mm**.\n"
+                                "- Para **esgoto**, utilize tubos de **100mm** na saída do vaso sanitário e **40mm/50mm** para pias, ralos e lavatórios."
                             )
 
                         else:
                             resposta_ia = (
-                                f"Falei com o sistema aqui sobre **'{prompt_usuario}'**, mas para não errar na conta, "
-                                "me diz exato: é para **parede (tijolo/bloco)**, **cimento/argamassa**, **piso**, ou **ferro**? "
-                                "Assim eu te passo o número exato na lata!"
+                                f"Analisei sua dúvida sobre **'{prompt_usuario}'**, meu irmão. "
+                                "Para eu te dar o número exato na lata, me confirme: a sua dúvida é focada em "
+                                "**paredes/blocos**, **cimento/argamassa**, **piso/contrapiso** ou **estruturas de ferro**? "
+                                "Me dê esse detalhe que eu calculo na hora para você!"
                             )
                         
                         st.markdown(resposta_ia)
