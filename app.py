@@ -21,18 +21,19 @@ st.markdown(
 )
 
 # ==========================================
-# 1.1. CONTROLE DE AMOSTRA GRÁTIS (1º ACESSO LIVRE, 2º BLOQUEIO)
+# 1.1. CONTROLE DE AMOSTRA GRÁTIS GRAVADA NO NAVEGADOR
 # ==========================================
-if "ja_acessou" not in st.session_state:
-    st.session_state.ja_acessou = False
+# Verificamos se o navegador já registrou que a amostra grátis foi usada
+params = st.query_params
+amostra_usada = params.get("amostra", "nao")
 
-if "liberado_pagamento" not in st.session_state:
-    st.session_state.liberado_pagamento = False
+if "liberado_pago" not in st.session_state:
+    st.session_state.liberado_pago = False
 
-# Se já acessou antes e não pagou, bloqueia e pede o pagamento/chave
-if st.session_state.ja_acessou and not st.session_state.liberado_pagamento:
-    st.markdown('<p class="main-header">🔒 Limite da Amostra Grátis Atingido</p>', unsafe_allow_html=True)
-    st.info("💡 Você já utilizou sua **amostra grátis** da plataforma. Para continuar acessando os módulos e realizando novos cálculos de engenharia, insira sua chave de liberação/pagamento abaixo.")
+# Se a amostra já foi usada e não foi inserida a chave de pagamento paga, bloqueia!
+if amostra_usada == "sim" and not st.session_state.liberado_pago:
+    st.markdown('<p class="main-header">🔒 Amostra Grátis Já Utilizada neste Computador</p>', unsafe_allow_html=True)
+    st.info("💡 Você já aproveitou o seu **1º acesso gratuito** neste dispositivo. Para continuar utilizando os módulos e fazendo novos cálculos, por favor insira a chave de liberação/pagamento abaixo.")
     
     col_l1, col_l2 = st.columns(2)
     with col_l1:
@@ -42,16 +43,16 @@ if st.session_state.ja_acessou and not st.session_state.liberado_pagamento:
 
     if st.button("Liberar Acesso Completo", type="primary", key="btn_liberar_pg"):
         if codigo_liberacao.strip() != "":
-            st.session_state.liberado_pagamento = True
-            st.success("Pagamento/Chave validada com sucesso! Bem-vindo de volta.")
+            st.session_state.liberado_pago = True
+            st.success("Chave validada com sucesso! Entrando na plataforma...")
             st.rerun()
         else:
-            st.warning("Por favor, insira a chave de liberação válida para continuar.")
+            st.warning("Por favor, informe a chave de liberação válida.")
     
     st.stop()
-elif not st.session_state.ja_acessou:
-    # Marca que agora ele já realizou o primeiro acesso gratuito
-    st.session_state.ja_acessou = True
+elif amostra_usada != "sim" and not st.session_state.liberado_pago:
+    # Marca no navegador do usuário que a amostra grátis foi consumida para futuras visitas
+    st.query_params["amostra"] = "sim"
 
 # ==========================================
 # 2. MENU LATERAL
@@ -70,11 +71,6 @@ modulo = st.sidebar.selectbox(
         "💼 Faturamento e CNPJ",
     ],
 )
-
-# Botão para simular saída se quiser testar o bloqueio de novo
-if st.sidebar.button("🔒 Simular Novo Acesso (Bloquear)"):
-    st.session_state.liberado_pagamento = False
-    st.rerun()
 
 # ==========================================
 # 3. CABEÇALHO DA APLICAÇÃO
