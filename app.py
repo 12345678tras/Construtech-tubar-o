@@ -36,7 +36,6 @@ modulo = st.sidebar.selectbox(
     ]
 )
 
-# Função auxiliar de exemplo para controle de amostragem/módulos
 def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
     funcao_conteudo()
 
@@ -88,8 +87,8 @@ if modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                     <div class="pix-box-baixo" style="margin-top: 15px;">
                         <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
                         <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
-                        <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_2](start_span)[span_2](end_span)
-                        <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_3](start_span)[span_3](end_span)
+                        <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>[span_0](start_span)[span_0](end_span)
+                        <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>[span_1](start_span)[span_1](end_span)
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -135,7 +134,9 @@ if modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                 with st.chat_message("assistant"):
                     with st.spinner("O Gemini está calculando os parâmetros da obra..."):
                         try:
-                            model = genai.GenerativeModel("gemini-1.5-flash")
+                            # Atualizado para o modelo padrão atual da API do Google Gemini
+                            model = genai.GenerativeModel("gemini-flash")
+                            
                             prompt_sistema = (
                                 "Você é o Engenheiro Virtual Inteligente da plataforma 'Construtech Tubarão'. "
                                 "Seu estilo de comunicação é amigável, direto, usando expressões de canteiro de obras "
@@ -152,7 +153,7 @@ if modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                             response = chat.send_message(f"{prompt_sistema}\n\nDúvida do usuário: {prompt_usuario}")
                             resposta_ia = response.text
                         except Exception as e:
-                            resposta_ia = f"⚠️ Opa, meu irmão! Erro de conexão com o Gemini: {str(e)}. Verifique se a chave de API está configurada nas Secrets."
+                            resposta_ia = f"⚠️ Opa, meu irmão! Erro de conexão com o Gemini: {str(e)}"
                         
                         st.markdown(resposta_ia)
                         st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
