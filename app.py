@@ -13,12 +13,8 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. CONFIGURAÇÕES SEGURAS (SECRETS DO GITHUB / STREAMLIT)
+# 2. CONFIGURAÇÕES SEGURAS (SECRETS DO STREAMLIT)
 # ==========================================
-# No Streamlit Cloud (Settings > Secrets), configure assim:
-# GEMINI_API_KEY = "sua_chave_aqui"
-# senhas_admin = ["CONSTRUTECH12", "CONSTRUTECH"]
-
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 SENHAS_MESTRE_CONFIG = st.secrets.get("senhas_admin", ["CONSTRUTECH12", "CONSTRUTECH", "CONTRUTECH12", "CONTRUTECH"])
 
@@ -561,7 +557,7 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
         else:
             if prompt_usuario := st.chat_input("Ex: 'Quantos blocos gastam no muro?' ou 'Qual o traço de concreto ideal?'"):
                 if not GEMINI_API_KEY:
-                    st.error("⚠️ A `GEMINI_API_KEY` não está configurada nos segredos do Streamlit (Secrets). Por favor, configure-a para usar a IA.")
+                    st.error("⚠️ A `GEMINI_API_KEY` não foi encontrada nos Secrets do Streamlit.")
                 else:
                     if not st.session_state.liberado_pago:
                         st.session_state.contador_ia_gratis += 1
