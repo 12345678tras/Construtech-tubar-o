@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. CONFIGURAÇÕES SEGURAS (SECRETS DO STREAMLIT)
+# 2. CONFIGURAÇÕES SEGURAS (SECRETS)
 # ==========================================
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 SENHAS_MESTRE_CONFIG = st.secrets.get(
@@ -22,29 +22,39 @@ SENHAS_MESTRE_CONFIG = st.secrets.get(
 )
 
 # ==========================================
-# 3. BLINDAGEM PERSISTENTE VIA LOCALSTORAGE (NATIVO)
+# 3. BLINDAGEM ANTI-BURLA POR COOKIE DE SESSÃO AVANÇADO
 # ==========================================
-# Injeta um script JavaScript leve para ler o estado salvo no navegador do cliente
+# Injeta um identificador único ultra-persistente no navegador que sobrevive a fechamentos de aba
 st.markdown(
     """
     <script>
-    const localPago = localStorage.getItem("construtech_pago");
-    const localAcessos = localStorage.getItem("construtech_acessos");
-    
-    // Se houver dados salvos no navegador, injeta na URL para o Streamlit ler
+    function getCookie(name) {
+        let matches = document.cookie.match(new RegExp(
+            "(?:^|; )" + name.replace(/([.$?*|{}()\\[\\]\\\\/+^])/g, '\\\\$1') + "=([^;]*)"
+        ));
+        return matches ? decodeURIComponent(matches[1]) : undefined;
+    }
+
+    function setCookie(name, value, days) {
+        let expires = "";
+        if (days) {
+            let date = new Date();
+            date.setTime(date.getTime() + (days*24*60*60*1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "")  + expires + "; path=/; SameSite=Strict";
+    }
+
+    let clientId = getCookie("construtech_client_id");
+    if (!clientId) {
+        clientId = 'user_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+        setCookie("construtech_client_id", clientId, 365);
+    }
+
+    // Sincroniza com a URL se necessário
     const urlParams = new URLSearchParams(window.location.search);
-    let needsReload = false;
-    
-    if (localPago && !urlParams.has('pago')) {
-        urlParams.set('pago', localPago);
-        needsReload = true;
-    }
-    if (localAcessos && !urlParams.has('acessos')) {
-        urlParams.set('acessos', localAcessos);
-        needsReload = true;
-    }
-    
-    if (needsReload) {
+    if (!urlParams.has('cid')) {
+        urlParams.set('cid', clientId);
         window.location.search = urlParams.toString();
     }
     </script>
@@ -52,19 +62,22 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Recupera os dados da URL (sincronizados com o navegador)
+# Dicionário em memória global simulando banco de dados persistente por cliente (ID do navegador)
+if "banco_clientes_nuvem" not in st.session_state:
+    st.session_state.banco_clientes_nuvem = {}
+
 params = st.query_params
-is_pago_url = params.get("pago", "false") == "true"
-try:
-    qtd_acessos_url = int(params.get("acessos", "0"))
-except:
-    qtd_acessos_url = 0
+client_id = params.get("cid", "visitante_padrao")
 
-if "usuario_pago" not in st.session_state:
-    st.session_state.usuario_pago = is_pago_url
+# Inicializa o registro deste cliente específico se não existir
+if client_id not in st.session_state.banco_clientes_nuvem:
+    st.session_state.banco_clientes_nuvem[client_id] = {
+        "acessos": 0,
+        "pago": False,
+    }
 
-if "contador_acessos_geral" not in st.session_state:
-    st.session_state.contador_acessos_geral = qtd_acessos_url
+# Atalhos para o cliente atual
+dados_cliente = st.session_state.banco_clientes_nuvem[client_id]
 
 if "mensagens_chat" not in st.session_state:
     st.session_state.mensagens_chat = [
@@ -73,30 +86,16 @@ if "mensagens_chat" not in st.session_state:
             "content": (
                 "Fala, meu irmão! Sou o Engenheiro Virtual Master da Construtech"
                 " Tubarão. Você tem exatamente **3 consultas/acessos"
-                " gratuitos** na plataforma. Pode mandar sua dúvida ou usar os módulos!"
+                " gratuitos** nesta máquina. Pode mandar sua dúvida ou usar os módulos!"
             ),
         }
     ]
 
 
-# Função para salvar o estado de forma permanente no navegador do usuário
-def atualizar_persistencia(novo_acesso, novo_pago):
-    st.session_state.contador_acessos_geral = novo_acesso
-    st.session_state.usuario_pago = novo_pago
-
-    # Atualiza a URL e salva no LocalStorage do navegador para não perder ao fechar a aba
-    st.query_params["acessos"] = str(novo_acesso)
-    st.query_params["pago"] = "true" if novo_pago else "false"
-
-    st.markdown(
-        f"""
-        <script>
-        localStorage.setItem("construtech_acessos", "{novo_acesso}");
-        localStorage.setItem("construtech_pago", "{"true" if novo_pago else "false"}");
-        </script>
-        """,
-        unsafe_allow_html=True,
-    )
+# Função para atualizar o banco de dados do cliente na sessão
+def atualizar_status_cliente(novo_acesso, novo_pago):
+    st.session_state.banco_clientes_nuvem[client_id]["acessos"] = novo_acesso
+    st.session_state.banco_clientes_nuvem[client_id]["pago"] = novo_pago
 
 
 # ==========================================
@@ -135,7 +134,7 @@ else:
 
 
 # ==========================================
-# 5. COMPONENTE REUTILIZÁVEL DE PAGAMENTO GLOBAL
+# 5. COMPONENTE DE PAGAMENTO GLOBAL BLINDADO
 # ==========================================
 def renderizar_box_pagamento_global():
     st.markdown(
@@ -143,8 +142,8 @@ def renderizar_box_pagamento_global():
         unsafe_allow_html=True,
     )
     st.warning(
-        "⚠️ Você utilizou seus **3 acessos gratuitos** permitidos neste"
-        " navegador. Para continuar utilizando todos os módulos e o assistente"
+        "⚠️ Você utilizou seus **3 acessos gratuitos** permitidos nesta"
+        " máquina. Para continuar utilizando todos os módulos e o assistente"
         " de IA de forma ilimitada, realize o pagamento de **R$ 20,00** para"
         " **CAC CONTABILIZANDO** ou insira sua chave de acesso mestre ao lado."
     )
@@ -176,22 +175,20 @@ def renderizar_box_pagamento_global():
         st.markdown("### 2️⃣ Liberar com Comprovante")
         comprovante_texto = st.text_area(
             "Comprovante de Pagamento:",
-            key="comp_global",
+            key="comp_global_seguro",
             placeholder="Cole o ID do Pix ou dados da transferência...",
             height=120,
         )
 
         if st.button(
-            "✨ Validar e Liberar Acesso Global",
-            key="btn_gerar_global",
+            "✨ Validar e Liberar Acesso Definitivo",
+            key="btn_gerar_global_seguro",
             type="primary",
             use_container_width=True,
         ):
             if comprovante_texto.strip() != "":
-                atualizar_persistencia(
-                    st.session_state.contador_acessos_geral, True
-                )
-                st.success("Acesso liberado com sucesso!")
+                atualizar_status_cliente(dados_cliente["acessos"], True)
+                st.success("Acesso liberado com sucesso para este dispositivo!")
                 st.rerun()
             else:
                 st.warning("⚠️ Insira o comprovante de pagamento.")
@@ -223,8 +220,8 @@ lista_modulos = [
 modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
 
 # Exibição correta dos testes restantes
-if not st.session_state.usuario_pago:
-    restantes = max(0, 3 - st.session_state.contador_acessos_geral)
+if not dados_cliente["pago"]:
+    restantes = max(0, 3 - dados_cliente["acessos"])
     st.sidebar.markdown("---")
     st.sidebar.info(f"🎯 Testes gratuitos restantes: **{restantes} de 3**")
 
@@ -236,20 +233,18 @@ with st.sidebar.expander("🛠️ Painel do Administrador"):
     if st.button("🔓 Ativar Acesso Mestre"):
         senha_tratada = senha_admin_input.strip().upper()
         if senha_tratada in [s.upper() for s in SENHAS_MESTRE_CONFIG]:
-            atualizar_persistencia(
-                st.session_state.contador_acessos_geral, True
-            )
-            st.success("Acesso Administrador liberado com sucesso!")
+            atualizar_status_cliente(dados_cliente["acessos"], True)
+            st.success("Acesso Administrador liberado!")
             st.rerun()
         else:
             st.error("Chave incorreta!")
 
-    if st.session_state.usuario_pago:
+    if dados_cliente["pago"]:
         st.info("Status atual: **MODO MASTER LIBERADO 🔓**")
 
-if st.sidebar.button("🔄 Resetar Navegador (Simular Novo Cliente)"):
-    atualizar_persistencia(0, False)
-    st.success("Navegador resetado com sucesso!")
+if st.sidebar.button("🔄 Resetar Este Dispositivo"):
+    atualizar_status_cliente(0, False)
+    st.success("Dispositivo resetado com sucesso!")
     st.rerun()
 
 # ==========================================
@@ -265,28 +260,25 @@ st.markdown("---")
 
 
 # ==========================================
-# FUNÇÃO DE CONTROLE DE ACESSO BLINDADA
+# FUNÇÃO DE CONTROLE DE ACESSO BLINDADO
 # ==========================================
 def verificar_e_consumir_acesso():
-    """Incrementa o uso e salva no navegador para bloquear reenvios."""
-    if st.session_state.usuario_pago:
+    """Incrementa o uso atrelado ao ID único persistente do dispositivo."""
+    if dados_cliente["pago"]:
         return True
 
-    if st.session_state.contador_acessos_geral >= 3:
+    if dados_cliente["acessos"] >= 3:
         return False
 
-    novo_uso = st.session_state.contador_acessos_geral + 1
-    atualizar_persistencia(novo_uso, st.session_state.usuario_pago)
+    novo_uso = dados_cliente["acessos"] + 1
+    atualizar_status_cliente(novo_uso, dados_cliente["pago"])
     return True
 
 
 # ==========================================
 # 8. BLOQUEIO GLOBAL OU EXIBIÇÃO DO MÓDULO
 # ==========================================
-if (
-    not st.session_state.usuario_pago
-    and st.session_state.contador_acessos_geral >= 3
-):
+if not dados_cliente["pago"] and dados_cliente["acessos"] >= 3:
     renderizar_box_pagamento_global()
 else:
     # ------------------------------------------
@@ -416,7 +408,6 @@ else:
                 f"💰 **Soma do Custo Total da Alvenaria:** `R$ {custo_tot:,.2f}`"
             )
 
-    # Demais módulos integrados com a verificação blindada
     elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
         st.subheader("🏠 Dimensionamento de Lajes")
         if st.button("Calcular Materiais", type="primary", key="btn_laje"):
@@ -524,10 +515,10 @@ else:
             "🤖 Simulação de Engenheiro Virtual Master (Powered by Gemini)"
         )
 
-        restantes_ia = max(0, 3 - st.session_state.contador_acessos_geral)
+        restantes_ia = max(0, 3 - dados_cliente["acessos"])
         st.info(
             f"🎁 Você tem **{restantes_ia} consulta(s)** gratuita(s) restantes"
-            " neste navegador."
+            " nesta máquina."
         )
 
         for msg in st.session_state.mensagens_chat:
