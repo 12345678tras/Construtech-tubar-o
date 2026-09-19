@@ -577,8 +577,8 @@ elif modulo == "🤖 Simulação de Engenheiro Virtual Master":
                             )
 
                             try:
-                                # Alterado para usar o modelo correto e atualizado gemini-2.5-flash
-                                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+                                # URL atualizada utilizando o modelo oficial gemini-3.6-flash
+                                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
                                 
                                 historico_texto = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in st.session_state.mensagens_chat])
                                 conteudo_prompt = f"{prompt_sistema}\n\nHistórico:\n{historico_texto}\n\nResponda à última mensagem:"
