@@ -13,7 +13,17 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. CONTROLE DE TEMA (MODO ESCURO / CLARO)
+# 2. CONFIGURAÇÕES SEGURAS (SECRETS DO GITHUB / STREAMLIT)
+# ==========================================
+# No Streamlit Cloud (Settings > Secrets), configure assim:
+# GEMINI_API_KEY = "sua_chave_aqui"
+# senhas_admin = ["CONSTRUTECH12", "CONSTRUTECH"]
+
+GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
+SENHAS_MESTRE_CONFIG = st.secrets.get("senhas_admin", ["CONSTRUTECH12", "CONSTRUTECH", "CONTRUTECH12", "CONTRUTECH"])
+
+# ==========================================
+# 3. CONTROLE DE TEMA (MODO ESCURO / CLARO)
 # ==========================================
 modo_escuro = st.sidebar.toggle("🌙 Ativar Modo Escuro", value=False)
 
@@ -47,7 +57,7 @@ else:
     )
 
 # ==========================================
-# 3. GERENCIAMENTO DE ESTADO (SESSION STATE)
+# 4. GERENCIAMENTO DE ESTADO (SESSION STATE)
 # ==========================================
 if "liberado_pago" not in st.session_state:
     st.session_state.liberado_pago = False
@@ -74,7 +84,60 @@ if "mensagens_chat" not in st.session_state:
     ]
 
 # ==========================================
-# 4. MENU LATERAL E PAINEL ADMINISTRADOR
+# 5. COMPONENTE REUTILIZÁVEL DE PAGAMENTO
+# ==========================================
+def renderizar_box_pagamento(nome_modulo):
+    st.markdown(f'<p class="main-header">🔒 Amostra Grátis Utilizada: {nome_modulo}</p>', unsafe_allow_html=True)
+    st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO** ou insira sua chave de acesso mestre ao lado.")
+
+    st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
+    col_pag1, col_pag2 = st.columns(2, gap="large")
+
+    with col_pag1:
+        st.markdown("### 1️⃣ Forma de Pagamento (Pix / Cartão)")
+        st.markdown(
+            '<a href="https://link.infinitepay.io/cristiane-da-260/VC1DLTAtUg-HgBiSH5iQO-20,00" target="_blank" class="btn-pagar">💳 PAGAR COM CARTÃO / LINK</a>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            """
+            <div class="pix-box-baixo">
+                <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
+                <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
+                <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>
+                <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col_pag2:
+        st.markdown("### 2️⃣ Liberar com Comprovante")
+        comprovante_texto = st.text_area(
+            "Comprovante de Pagamento:", 
+            key=f"comp_{nome_modulo}", 
+            placeholder="Cole o ID do Pix ou dados da transferência...",
+            height=120
+        )
+        
+        if st.button("✨ Validar e Liberar Acesso", key=f"btn_gerar_{nome_modulo}", type="primary", use_container_width=True):
+            if comprovante_texto.strip() != "":
+                data_atual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                st.session_state.historico_comprovantes.append({
+                    "modulo": nome_modulo,
+                    "comprovante": comprovante_texto.strip(),
+                    "data": data_atual
+                })
+                st.session_state.liberado_pago = True
+                st.success("Acesso liberado com sucesso!")
+                st.rerun()
+            else:
+                st.warning("⚠️ Insira o comprovante de pagamento.")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ==========================================
+# 6. MENU LATERAL E PAINEL ADMINISTRADOR
 # ==========================================
 st.sidebar.title("Navegação de Módulos")
 lista_modulos = [
@@ -101,7 +164,7 @@ with st.sidebar.expander("🛠️ Painel do Administrador"):
     senha_admin_input = st.text_input("Digite sua chave de liberação:", type="password", key="input_senha_adm")
     if st.button("🔓 Ativar Acesso Mestre"):
         senha_tratada = senha_admin_input.strip().upper()
-        if senha_tratada in ["CONSTRUTECH12", "CONSTRUTECH", "CONTRUTECH12", "CONTRUTECH"]:
+        if senha_tratada in [s.upper() for s in SENHAS_MESTRE_CONFIG]:
             st.session_state.liberado_pago = True
             st.success("Acesso Administrador liberado com sucesso!")
             st.rerun()
@@ -118,7 +181,7 @@ if st.sidebar.button("🔄 Resetar Sessão (Simular Novo Cliente)"):
     st.rerun()
 
 # ==========================================
-# 5. CABEÇALHO DA APLICAÇÃO
+# 7. CABEÇALHO DA APLICAÇÃO
 # ==========================================
 st.markdown('<p class="main-header">🏗️ Construtech Tubarão</p>', unsafe_allow_html=True)
 st.markdown(
@@ -128,7 +191,7 @@ st.markdown(
 st.markdown("---")
 
 # ==========================================
-# FUNÇÃO DE BLOQUEIO DE MÓDULOS APÓS AMOSTRA
+# FUNÇÃO DE CONTROLE DE AMOSTRA
 # ==========================================
 def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
     if nome_modulo not in st.session_state.uso_modulos:
@@ -137,60 +200,13 @@ def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
     status_atual = st.session_state.uso_modulos[nome_modulo]
 
     if status_atual == "bloqueado" and not st.session_state.liberado_pago:
-        st.markdown(f'<p class="main-header">🔒 Amostra Grátis Utilizada: {nome_modulo}</p>', unsafe_allow_html=True)
-        st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO** ou insira sua chave de acesso mestre ao lado.")
-
-        st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
-        col_pag1, col_pag2 = st.columns(2, gap="large")
-
-        with col_pag1:
-            st.markdown("### 1️⃣ Forma de Pagamento (Pix / Cartão)")
-            st.markdown(
-                '<a href="https://link.infinitepay.io/cristiane-da-260/VC1DLTAtUg-HgBiSH5iQO-20,00" target="_blank" class="btn-pagar">💳 PAGAR COM CARTÃO / LINK</a>',
-                unsafe_allow_html=True
-            )
-            st.markdown(
-                """
-                <div class="pix-box-baixo">
-                    <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
-                    <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
-                    <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>
-                    <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-        with col_pag2:
-            st.markdown("### 2️⃣ Liberar com Comprovante")
-            comprovante_texto = st.text_area(
-                "Comprovante de Pagamento:", 
-                key=f"comp_{nome_modulo}", 
-                placeholder="Cole o ID do Pix ou dados da transferência...",
-                height=120
-            )
-            
-            if st.button("✨ Validar e Liberar Acesso", key=f"btn_gerar_{nome_modulo}", type="primary", use_container_width=True):
-                if comprovante_texto.strip() != "":
-                    data_atual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                    st.session_state.historico_comprovantes.append({
-                        "modulo": nome_modulo,
-                        "comprovante": comprovante_texto.strip(),
-                        "data": data_atual
-                    })
-                    st.session_state.liberado_pago = True
-                    st.success("Acesso liberado com sucesso!")
-                    st.rerun()
-                else:
-                    st.warning("⚠️ Insira o comprovante de pagamento.")
-
-        st.markdown('</div>', unsafe_allow_html=True)
+        renderizar_box_pagamento(nome_modulo)
         return
 
     funcao_conteudo()
 
 # ==========================================
-# 6. MÓDULOS DO SISTEMA
+# 8. MÓDULOS DO SISTEMA
 # ==========================================
 if modulo == "📊 Visão Geral e BDI":
     def conteudo():
@@ -506,7 +522,7 @@ CONTRATANTE: {contratante}
 VALOR: R$ {valor_contrato:,.2f}
 PRAZO: {prazo_meses} meses
 """
-            st.text_area("Visualização do Contrato:", value=minuta_texto, height=200)
+            st.text_area("Visualização Contrato:", value=minuta_texto, height=200)
             st.session_state.uso_modulos[modulo] = "bloqueado"
     executar_com_controle_amostra(modulo, conteudo)
 
@@ -520,24 +536,18 @@ elif modulo == "💼 Faturamento e CNPJ":
     executar_com_controle_amostra(modulo, conteudo)
 
 # ==========================================
-# 7. ASSISTENTE IA INTEGRADO COM O GEMINI (VIA API DIRETA)
+# 9. ASSISTENTE IA INTEGRADO COM O GEMINI
 # ==========================================
 elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
     def conteudo_ia():
         st.subheader("🤖 Engenheiro Virtual Inteligente (Powered by Gemini) - Construtech Tubarão")
-        
-        api_key = ""
-        try:
-            api_key = st.secrets["GEMINI_API_KEY"]
-        except Exception:
-            pass
 
         consultas_restantes = max(0, 4 - st.session_state.contador_ia_gratis)
         if not st.session_state.liberado_pago:
             if consultas_restantes > 0:
                 st.info(f"🎁 Você tem **{consultas_restantes} consulta(s) gratuita(s)** restantes com o Engenheiro Virtual.")
             else:
-                st.warning("⚠️ Suas 4 consultas gratuitas da IA acabaram. Realize o pagamento abaixo para liberar o acesso ilimitado.")
+                st.warning("⚠️ Suas 4 consultas gratuitas da IA acabaram.")
 
         for msg in st.session_state.mensagens_chat:
             with st.chat_message(msg["role"]):
@@ -546,105 +556,66 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
         if st.session_state.contador_ia_gratis >= 4 and not st.session_state.liberado_pago:
             st.markdown("---")
             st.markdown("### 🔒 Desbloqueie o Assistente IA Ilimitado")
-            st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
-            col_pag1, col_pag2 = st.columns(2, gap="large")
-
-            with col_pag1:
-                st.markdown("### 1️⃣ Forma de Pagamento (Pix / Cartão)")
-                st.markdown(
-                    '<a href="https://link.infinitepay.io/cristiane-da-260/VC1DLTAtUg-HgBiSH5iQO-20,00" target="_blank" class="btn-pagar">💳 PAGAR COM CARTÃO / LINK</a>',
-                    unsafe_allow_html=True
-                )
-                st.markdown(
-                    """
-                    <div class="pix-box-baixo">
-                        <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold;">Ou pague via Pix Direto:</p>
-                        <p style="margin: 0; font-size: 13px;">Chave Pix (Telefone):</p>
-                        <code style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 3px 8px; border-radius: 4px; font-weight: bold;">+5564993044147</code>
-                        <p style="margin: 5px 0 0 0; font-size: 12px;">Favorecido: <b>CAC CONTABILIZANDO</b></p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-            with col_pag2:
-                st.markdown("### 2️⃣ Liberar com Comprovante")
-                comprovante_texto = st.text_area(
-                    "Comprovante de Pagamento:", 
-                    key="comp_ia_chat", 
-                    placeholder="Cole o ID do Pix ou dados da transferência...",
-                    height=120
-                )
-                
-                if st.button("✨ Validar e Liberar Acesso da IA", key="btn_gerar_ia_chat", type="primary", use_container_width=True):
-                    if comprovante_texto.strip() != "":
-                        data_atual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                        st.session_state.historico_comprovantes.append({
-                            "modulo": "Assistente IA Completo",
-                            "comprovante": comprovante_texto.strip(),
-                            "data": data_atual
-                        })
-                        st.session_state.liberado_pago = True
-                        st.success("Acesso liberado com sucesso!")
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ Insira o comprovante de pagamento.")
-
-            st.markdown('</div>', unsafe_allow_html=True)
+            renderizar_box_pagamento("Assistente IA Completo")
         
         else:
             if prompt_usuario := st.chat_input("Ex: 'Quantos blocos gastam no muro?' ou 'Qual o traço de concreto ideal?'"):
-                if not st.session_state.liberado_pago:
-                    st.session_state.contador_ia_gratis += 1
+                if not GEMINI_API_KEY:
+                    st.error("⚠️ A `GEMINI_API_KEY` não está configurada nos segredos do Streamlit (Secrets). Por favor, configure-a para usar a IA.")
+                else:
+                    if not st.session_state.liberado_pago:
+                        st.session_state.contador_ia_gratis += 1
 
-                st.session_state.mensagens_chat.append({"role": "user", "content": prompt_usuario})
-                with st.chat_message("user"):
-                    st.markdown(prompt_usuario)
+                    st.session_state.mensagens_chat.append({"role": "user", "content": prompt_usuario})
+                    with st.chat_message("user"):
+                        st.markdown(prompt_usuario)
 
-                with st.chat_message("assistant"):
-                    with st.spinner("O Engenheiro Virtual está calculando os parâmetros da obra..."):
-                        resposta_ia = ""
-                        
-                        prompt_sistema = (
-                            "Você é o Engenheiro Virtual Inteligente da plataforma 'Construtech Tubarão'. "
-                            "Seu estilo de comunicação é amigável, direto, usando expressões de canteiro de obras "
-                            "(como 'fala, meu irmão', 'na lata'). Especialista em construção civil brasileira."
-                        )
+                    with st.chat_message("assistant"):
+                        with st.spinner("O Engenheiro Virtual está calculando os parâmetros da obra..."):
+                            resposta_ia = ""
+                            
+                            prompt_sistema = (
+                                "Você é o Engenheiro Virtual Inteligente da plataforma 'Construtech Tubarão'. "
+                                "Seu estilo de comunicação é amigável, direto, usando expressões de canteiro de obras "
+                                "(como 'fala, meu irmão', 'na lata'). Especialista em construção civil brasileira."
+                            )
 
-                        try:
-                            # URL corrigida com o modelo gemini-1.5-flash atualizado na v1
-                            url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
-                            
-                            historico_texto = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in st.session_state.mensagens_chat])
-                            conteudo_prompt = f"{prompt_sistema}\n\nHistórico:\n{historico_texto}\n\nResponda à última mensagem:"
-                            
-                            payload = {
-                                "contents": [{
-                                    "parts": [{"text": conteudo_prompt}]
-                                }]
-                            }
-                            headers = {'Content-Type': 'application/json'}
-                            
-                            response = requests.post(url, headers=headers, data=json.dumps(payload))
-                            
-                            if response.status_code == 200:
-                                res_json = response.json()
-                                resposta_ia = res_json['candidates'][0]['content']['parts'][0]['text']
-                            else:
-                                resposta_ia = f"⚠️ Opa, meu irmão! Erro na API (Código {response.status_code}): {response.text}"
+                            try:
+                                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
                                 
-                        except Exception as e:
-                            resposta_ia = f"⚠️ Opa, meu irmão! Erro de conexão com a IA: {str(e)}"
-                        
-                        st.markdown(resposta_ia)
-                        st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
-                
-                st.rerun()
+                                historico_texto = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in st.session_state.mensagens_chat])
+                                conteudo_prompt = f"{prompt_sistema}\n\nHistórico:\n{historico_texto}\n\nResponda à última mensagem:"
+                                
+                                payload = {
+                                    "contents": [{
+                                        "parts": [{"text": conteudo_prompt}]
+                                    }]
+                                }
+                                headers = {'Content-Type': 'application/json'}
+                                
+                                response = requests.post(url, headers=headers, data=json.dumps(payload))
+                                
+                                if response.status_code == 200:
+                                    res_json = response.json()
+                                    try:
+                                        resposta_ia = res_json['candidates'][0]['content']['parts'][0]['text']
+                                    except (KeyError, IndexError):
+                                        resposta_ia = "⚠️ Opa, meu irmão! A resposta veio em um formato inesperado."
+                                else:
+                                    resposta_ia = f"⚠️ Opa, meu irmão! Erro na API (Código {response.status_code}): {response.text}"
+                                    
+                            except Exception as e:
+                                resposta_ia = f"⚠️ Opa, meu irmão! Erro de conexão com a IA: {str(e)}"
+                            
+                            st.markdown(resposta_ia)
+                            st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
+                    
+                    st.rerun()
 
     executar_com_controle_amostra("Assistente IA (Engenheiro Virtual Inteligente)", conteudo_ia)
 
 # ==========================================
-# 8. RODAPÉ DA APLICAÇÃO
+# 10. RODAPÉ DA APLICAÇÃO
 # ==========================================
 st.markdown("---")
 st.markdown(
