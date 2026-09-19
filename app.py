@@ -33,6 +33,7 @@ if modo_escuro:
         .box-pagamento { background-color: #1F2937; padding: 25px; border-radius: 12px; border: 3px solid #3B82F6; margin-bottom: 20px; }
         .btn-pagar { background-color: #059669; color: white !important; padding: 14px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: block; text-align: center; margin-top: 10px; }
         .pix-box-baixo { background-color: #111827; padding: 15px; border-radius: 8px; border: 1px solid #10B981; text-align: center; margin-top: 15px; }
+        .sidebar-vendas { background-color: #1F2937; padding: 15px; border-radius: 10px; border: 1px solid #3B82F6; margin-top: 20px; text-align: center; }
         </style>
     """,
         unsafe_allow_html=True,
@@ -47,6 +48,7 @@ else:
         .box-pagamento { background-color: #F8FAFC; padding: 25px; border-radius: 12px; border: 3px solid #2563EB; margin-bottom: 20px; }
         .btn-pagar { background-color: #059669; color: white !important; padding: 14px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: block; text-align: center; margin-top: 10px; }
         .pix-box-baixo { background-color: #ECFDF5; padding: 15px; border-radius: 8px; border: 1px solid #10B981; text-align: center; margin-top: 15px; }
+        .sidebar-vendas { background-color: #F1F5F9; padding: 15px; border-radius: 10px; border: 1px solid #2563EB; margin-top: 20px; text-align: center; }
         </style>
     """,
         unsafe_allow_html=True,
@@ -133,9 +135,11 @@ def renderizar_box_pagamento(nome_modulo):
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 6. MENU LATERAL E PAINEL ADMINISTRADOR
+# 6. MENU LATERAL E PAINEL ADMINISTRADOR (RESTRITO E COMERCIAL)
 # ==========================================
-st.sidebar.title("Navegação de Módulos")
+st.sidebar.title("🏗️ Construtech Master")
+st.sidebar.markdown("Navegação Estratégica de Canteiro")
+
 lista_modulos = [
     "📊 Visão Geral e BDI",
     "🧱 Alvenaria Completa (Blocos, Cimento e Areia)",
@@ -154,6 +158,19 @@ lista_modulos = [
 ]
 
 modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
+
+# Bloco comercial persistente na lateral para incentivar vendas rápidas
+st.sidebar.markdown("---")
+st.sidebar.markdown(
+    """
+    <div class="sidebar-vendas">
+        <p style="margin: 0; font-size: 13px; font-weight: bold;">💎 Desbloqueio Geral (R$ 20,00)</p>
+        <p style="margin: 5px 0 10px 0; font-size: 11px;">Tenha acesso ilimitado a todas as ferramentas de engenharia.</p>
+        <a href="https://link.infinitepay.io/cristiane-da-260/VC1DLTAtUg-HgBiSH5iQO-20,00" target="_blank" style="background-color: #059669; color: white; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; display: block;">🔓 LIBERAR ACESSO VIP</a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.sidebar.markdown("---")
 with st.sidebar.expander("🛠️ Painel do Administrador"):
@@ -577,8 +594,7 @@ elif modulo == "🤖 Simulação de Engenheiro Virtual Master":
                             )
 
                             try:
-                                # URL atualizada utilizando o modelo oficial gemini-3.6-flash
-                                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
+                                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
                                 
                                 historico_texto = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in st.session_state.mensagens_chat])
                                 conteudo_prompt = f"{prompt_sistema}\n\nHistórico:\n{historico_texto}\n\nResponda à última mensagem:"
