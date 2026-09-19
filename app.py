@@ -2,6 +2,7 @@ import streamlit as st
 import datetime
 import requests
 import json
+from streamlit_cookies_manager import EncryptedCookieManager
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA
@@ -13,13 +14,26 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. CONFIGURAÇÕES SEGURAS (SECRETS DO STREAMLIT)
+# 2. GERENCIADOR DE COOKIES (BLINDAGEM CONTRA BURLAR)
+# ==========================================
+COOKIE_SECRET = st.secrets.get("cookie_password", "ConstrutechSuperSenhaSegura2026!@#")
+
+cookies = EncryptedCookieManager(
+    prefix="construtech_tubarao_",
+    password=COOKIE_SECRET
+)
+
+if not cookies.ready():
+    st.stop()  # Aguarda o gerenciador de cookies carregar
+
+# ==========================================
+# 3. CONFIGURAÇÕES SEGURAS (SECRETS)
 # ==========================================
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 SENHAS_MESTRE_CONFIG = st.secrets.get("senhas_admin", ["CONSTRUTECH12", "CONSTRUTECH", "CONTRUTECH12", "CONTRUTECH"])
 
 # ==========================================
-# 3. CONTROLE DE TEMA (MODO ESCURO / CLARO)
+# 4. CONTROLE DE TEMA (MODO ESCURO / CLARO)
 # ==========================================
 modo_escuro = st.sidebar.toggle("🌙 Ativar Modo Escuro", value=False)
 
@@ -55,19 +69,23 @@ else:
     )
 
 # ==========================================
-# 4. GERENCIAMENTO DE ESTADO (SESSION STATE)
+# 5. GERENCIAMENTO DE ESTADO COM COOKIES
 # ==========================================
-if "liberado_pago" not in st.session_state:
-    st.session_state.liberado_pago = False
+if "vip_global" not in cookies:
+    cookies["vip_global"] = "false"
 
-if "uso_modulos" not in st.session_state:
-    st.session_state.uso_modulos = {}
+is_vip = cookies["vip_global"] == "true"
+
+if "contadores_cookie" not in cookies:
+    cookies["contadores_cookie"] = json.dumps({})
+
+try:
+    contador_usos = json.loads(cookies["contadores_cookie"])
+except:
+    contador_usos = {}
 
 if "historico_comprovantes" not in st.session_state:
     st.session_state.historico_comprovantes = []
-
-if "contador_ia_gratis" not in st.session_state:
-    st.session_state.contador_ia_gratis = 0
 
 if "mensagens_chat" not in st.session_state:
     st.session_state.mensagens_chat = [
@@ -75,18 +93,22 @@ if "mensagens_chat" not in st.session_state:
             "role": "assistant",
             "content": (
                 "Fala, meu irmão! Sou o Engenheiro Virtual Master da Construtech Tubarão. "
-                "Você tem **4 consultas gratuitas** para testar. "
+                "Você tem **3 consultas gratuitas** para testar. "
                 "Pode mandar sua dúvida do seu jeito, que eu te ajudo na obra!"
             ),
         }
     ]
 
+def salvar_cookie_estado():
+    cookies["contadores_cookie"] = json.dumps(contador_usos)
+    cookies.save()
+
 # ==========================================
-# 5. COMPONENTE REUTILIZÁVEL DE PAGAMENTO
+# 6. COMPONENTE DE PAGAMENTO
 # ==========================================
 def renderizar_box_pagamento(nome_modulo):
-    st.markdown(f'<p class="main-header">🔒 Amostra Grátis Utilizada: {nome_modulo}</p>', unsafe_allow_html=True)
-    st.info("💡 Você já utilizou sua consulta gratuita neste módulo. Para continuar acessando, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO** ou insira sua chave de acesso mestre ao lado.")
+    st.markdown(f'<p class="main-header">🔒 Limite de Consultas Atingido: {nome_modulo}</p>', unsafe_allow_html=True)
+    st.warning("💡 Você já utilizou suas **3 consultas gratuitas** neste módulo. Para continuar acessando sem limites, realize o pagamento de **R$ 20,00** para **CAC CONTABILIZANDO** ou insira sua chave de acesso mestre ao lado.")
 
     st.markdown('<div class="box-pagamento">', unsafe_allow_html=True)
     col_pag1, col_pag2 = st.columns(2, gap="large")
@@ -126,7 +148,8 @@ def renderizar_box_pagamento(nome_modulo):
                     "comprovante": comprovante_texto.strip(),
                     "data": data_atual
                 })
-                st.session_state.liberado_pago = True
+                cookies["vip_global"] = "true"
+                cookies.save()
                 st.success("Acesso liberado com sucesso!")
                 st.rerun()
             else:
@@ -135,7 +158,7 @@ def renderizar_box_pagamento(nome_modulo):
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 6. MENU LATERAL E PAINEL ADMINISTRADOR (RESTRITO E COMERCIAL)
+# 7. MENU LATERAL E PAINEL ADMINISTRADOR
 # ==========================================
 st.sidebar.title("🏗️ Construtech Master")
 st.sidebar.markdown("Navegação Estratégica de Canteiro")
@@ -159,7 +182,6 @@ lista_modulos = [
 
 modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
 
-# Bloco comercial persistente na lateral para incentivar vendas rápidas
 st.sidebar.markdown("---")
 st.sidebar.markdown(
     """
@@ -178,23 +200,25 @@ with st.sidebar.expander("🛠️ Painel do Administrador"):
     if st.button("🔓 Ativar Acesso Mestre"):
         senha_tratada = senha_admin_input.strip().upper()
         if senha_tratada in [s.upper() for s in SENHAS_MESTRE_CONFIG]:
-            st.session_state.liberado_pago = True
+            cookies["vip_global"] = "true"
+            cookies.save()
             st.success("Acesso Administrador liberado com sucesso!")
             st.rerun()
         else:
             st.error("Chave incorreta!")
 
-    if st.session_state.liberado_pago:
+    if is_vip:
         st.info("Status atual: **MODO MASTER LIBERADO 🔓**")
 
-if st.sidebar.button("🔄 Resetar Sessão (Simular Novo Cliente)"):
-    st.session_state.uso_modulos = {}
-    st.session_state.contador_ia_gratis = 0
-    st.session_state.liberado_pago = False
+if st.sidebar.button("🔄 Resetar Dispositivo (Zerar Cookies)"):
+    cookies["vip_global"] = "false"
+    cookies["contadores_cookie"] = json.dumps({})
+    cookies.save()
+    st.success("Cookies limpos com sucesso!")
     st.rerun()
 
 # ==========================================
-# 7. CABEÇALHO DA APLICAÇÃO
+# 8. CABEÇALHO DA APLICAÇÃO
 # ==========================================
 st.markdown('<p class="main-header">🏗️ Construtech Tubarão</p>', unsafe_allow_html=True)
 st.markdown(
@@ -203,26 +227,28 @@ st.markdown(
 )
 st.markdown("---")
 
-# ==========================================
-# FUNÇÃO DE CONTROLE DE AMOSTRA
-# ==========================================
-def executar_com_controle_amostra(nome_modulo, funcao_conteudo):
-    if nome_modulo not in st.session_state.uso_modulos:
-        st.session_state.uso_modulos[nome_modulo] = "livre"
-
-    status_atual = st.session_state.uso_modulos[nome_modulo]
-
-    if status_atual == "bloqueado" and not st.session_state.liberado_pago:
-        renderizar_box_pagamento(nome_modulo)
+def gerenciar_limite_modulo(nome_modulo, funcao_conteudo):
+    if is_vip:
+        funcao_conteudo(ignorar_limite=True)
         return
 
-    funcao_conteudo()
+    if nome_modulo not in contador_usos:
+        contador_usos[nome_modulo] = 0
+
+    usos_atuais = contador_usos[nome_modulo]
+    restantes = max(0, 3 - usos_atuais)
+
+    if usos_atuais >= 3:
+        renderizar_box_pagamento(nome_modulo)
+    else:
+        st.info(f"🎁 Você tem **{restantes} consulta(s) gratuita(s)** restantes neste módulo.")
+        funcao_conteudo(ignorar_limite=False)
 
 # ==========================================
-# 8. MÓDULOS DO SISTEMA
+# 9. MÓDULOS DO SISTEMA
 # ==========================================
 if modulo == "📊 Visão Geral e BDI":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("Painel de Controle e Viabilidade Comercial")
         col1, col2 = st.columns(2)
         with col1:
@@ -239,11 +265,15 @@ if modulo == "📊 Visão Geral e BDI":
             col_m1, col_m2 = st.columns(2)
             col_m1.metric("Preço Final de Venda", f"R$ {preco_venda:,.2f}")
             col_m2.metric("Lucro Bruto Estimado", f"R$ {lucro_estimado:,.2f}")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 elif modulo == "🧱 Alvenaria Completa (Blocos, Cimento e Areia)":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("🧱 Dimensionamento e Soma de Insumos de Alvenaria")
         col1, col2 = st.columns(2)
         with col1:
@@ -294,11 +324,15 @@ elif modulo == "🧱 Alvenaria Completa (Blocos, Cimento e Areia)":
             c2.metric("Sacos de Cimento", f"{sacos_c:.1f} sc")
             c3.metric("Areia Média", f"{m3_a:.2f} m³")
             st.info(f"💰 **Soma do Custo Total da Alvenaria:** `R$ {custo_tot:,.2f}`")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("🏠 Dimensionamento, Variedade e Ferro da Laje")
         col1, col2 = st.columns(2)
         with col1:
@@ -325,11 +359,15 @@ elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
             c1.metric("Vigotas Pré-moldadas", f"{ml_vigotas:.1f} m")
             c2.metric("Blocos / Lajotas", f"{int(qtd_blocos)} un")
             c3.metric("Concreto (Capa)", f"{vol_concreto_m3:.2f} m³")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("🏗️ Dimensão, Espessura e Soma de Sacos de Cimento (Traço)")
         col1, col2 = st.columns(2)
         with col1:
@@ -353,11 +391,15 @@ elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
             c1.metric("Volume Total com Perda", f"{volume_real:.2f} m³")
             c2.metric("Sacos de Cimento", f"{sc_cif:.1f} sacos")
             c3.metric("Areia / Brita", f"{areia_m3:.2f} m³ / {brita_m3:.2f} m³")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 elif modulo == "⚙️ Projeto de Aço, Custo e Auditoria de Armadura":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("⚙️ Projeto Geral de Aço e Auditoria")
         area_obra = st.number_input("Área Construída Total (m²):", min_value=10.0, value=120.0, key="aco_geral_area")
         preco_aco_kg = st.number_input("Preço Médio do Aço por kg (R$):", value=11.50, key="aco_geral_pr")
@@ -368,11 +410,15 @@ elif modulo == "⚙️ Projeto de Aço, Custo e Auditoria de Armadura":
             c1, c2 = st.columns(2)
             c1.metric("Peso Estimado de Aço", f"{peso_tot:.1f} kg")
             c2.metric("Custo Total do Aço", f"R$ {custo_tot_aco:,.2f}")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 elif modulo == "🏗️ Estrutural, Vigas, Bitolas e Aços":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("🏗️ Dimensionamento de Vigas, Colunas e Bitolas de Ferro")
         col1, col2 = st.columns(2)
         with col1:
@@ -394,11 +440,15 @@ elif modulo == "🏗️ Estrutural, Vigas, Bitolas e Aços":
             c1.metric("Ferro Principal", tipo_bitola_principal)
             c2.metric("Peso Total", f"{kg_por_viga:.1f} kg")
             c3.metric("Estribos", f"{estribos_un} un")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("🚰 Quantitativo de Canos, Conexões e Fossa para Banheiro e Cozinha")
         col1, col2 = st.columns(2)
         with col1:
@@ -414,11 +464,15 @@ elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
             st.success("Soma hidráulica gerada com sucesso!")
             st.write(f"- Tubo Esgoto 100mm: **{cano_esgoto_100:.1f} metros**")
             st.write(f"- Tubo Água Fria 25mm: **{cano_agua_25:.1f} metros**")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 elif modulo == "🎨 Revestimento, Acabamento e Pintura":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("🎨 Cálculo de Reboco, Pintura e Pisos/Porcelanatos")
         col1, col2 = st.columns(2)
         with col1:
@@ -438,11 +492,15 @@ elif modulo == "🎨 Revestimento, Acabamento e Pintura":
             c1.metric("Argamassa Reboco", f"{sacos_arg_reboco:.1f} sc (20kg)")
             c2.metric("Tinta Estimada", f"{litros_tinta:.1f} litros")
             c3.metric("Piso c/ Recorte", f"{piso_com_perda:.1f} m²")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 elif modulo == "🏠 Cobertura e Telhado":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("🏠 Quantitativo de Telhas, Caibros e Ripas")
         col1, col2 = st.columns(2)
         with col1:
@@ -468,11 +526,15 @@ elif modulo == "🏠 Cobertura e Telhado":
             c1.metric("Área Real do Telhado", f"{area_real:.1f} m²")
             c2.metric("Quantidade de Telhas", f"{int(qtd_telhas)} un")
             c3.metric("Madeiramento (Caibros/Ripas)", f"{ml_caibros:.0f}m / {ml_ripas:.0f}m")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 elif modulo == "⚡ Elétrica Básica Residencial":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("⚡ Estimativa de Eletrodutos, Caixas e Fios")
         col1, col2 = st.columns(2)
         with col1:
@@ -490,11 +552,15 @@ elif modulo == "⚡ Elétrica Básica Residencial":
             c1, c2 = st.columns(2)
             c1.metric("Eletrodutos Corrugados", f"{m_conduite:.1f} metros")
             c2.metric("Caixas 4x2 / 4x4", f"{caixas_4x2} / {caixas_4x4} un")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 elif modulo == "📅 Cronograma Físico-Financeiro (Curva S)":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("📅 Distribuição de Custos por Etapas da Obra")
         custo_total_obra = st.number_input("Custo Total Estimado da Obra (R$):", value=150000.0, key="curva_val")
         
@@ -513,11 +579,15 @@ elif modulo == "📅 Cronograma Físico-Financeiro (Curva S)":
             st.write(f"- **4. Cobertura:** R$ {fase_cobertura:,.2f} (10%)")
             st.write(f"- **5. Instalações:** R$ {fase_instalacoes:,.2f} (15%)")
             st.write(f"- **6. Acabamentos:** R$ {fase_acabamento:,.2f} (20%)")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 elif modulo == "📝 Gerador de Contrato de Empreitada":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("📝 Emissor de Minuta de Contrato de Prestação de Serviços")
         col1, col2 = st.columns(2)
         with col1:
@@ -536,99 +606,95 @@ VALOR: R$ {valor_contrato:,.2f}
 PRAZO: {prazo_meses} meses
 """
             st.text_area("Visualização Contrato:", value=minuta_texto, height=200)
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 elif modulo == "💼 Faturamento e CNPJ":
-    def conteudo():
+    def conteudo(ignorar_limite):
         st.subheader("Orçamento Comercial e Proposta de Serviços")
         valor_bruto = st.number_input("Valor Base dos Serviços (R$):", value=12000.0, key="fat_val")
         if st.button("Emitir Proposta", type="primary", key="btn_calc_fat"):
             st.success(f"Proposta emitida no valor de R$ {valor_bruto:,.2f}!")
-            st.session_state.uso_modulos[modulo] = "bloqueado"
-    executar_com_controle_amostra(modulo, conteudo)
+            
+            if not ignorar_limite:
+                contador_usos[modulo] += 1
+                salvar_cookie_estado()
+                st.rerun()
+    gerenciar_limite_modulo(modulo, conteudo)
 
 # ==========================================
-# 9. ASSISTENTE IA INTEGRADO COM O GEMINI
+# 10. ASSISTENTE IA INTEGRADO COM O GEMINI
 # ==========================================
 elif modulo == "🤖 Simulação de Engenheiro Virtual Master":
-    def conteudo_ia():
+    def conteudo_ia(ignorar_limite):
         st.subheader("🤖 Simulação de Engenheiro Virtual Master (Powered by Gemini) - Construtech Tubarão")
-
-        consultas_restantes = max(0, 4 - st.session_state.contador_ia_gratis)
-        if not st.session_state.liberado_pago:
-            if consultas_restantes > 0:
-                st.info(f"🎁 Você tem **{consultas_restantes} consulta(s) gratuita(s)** restantes com o Engenheiro Virtual Master.")
-            else:
-                st.warning("⚠️ Suas 4 consultas gratuitas da IA acabaram.")
 
         for msg in st.session_state.mensagens_chat:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
 
-        if st.session_state.contador_ia_gratis >= 4 and not st.session_state.liberado_pago:
-            st.markdown("---")
-            st.markdown("### 🔒 Desbloqueie o Assistente IA Ilimitado")
-            renderizar_box_pagamento("Assistente IA Completo")
-        
-        else:
-            if prompt_usuario := st.chat_input("Ex: 'Quantos blocos gastam no muro?' ou 'Qual o traço de concreto ideal?'"):
-                if not GEMINI_API_KEY:
-                    st.error("⚠️ A `GEMINI_API_KEY` não foi encontrada nos Secrets do Streamlit.")
-                else:
-                    if not st.session_state.liberado_pago:
-                        st.session_state.contador_ia_gratis += 1
+        if prompt_usuario := st.chat_input("Ex: 'Quantos blocos gastam no muro?' ou 'Qual o traço de concreto ideal?'"):
+            if not GEMINI_API_KEY:
+                st.error("⚠️ A `GEMINI_API_KEY` não foi encontrada nos Secrets do Streamlit.")
+            else:
+                st.session_state.mensagens_chat.append({"role": "user", "content": prompt_usuario})
+                with st.chat_message("user"):
+                    st.markdown(prompt_usuario)
 
-                    st.session_state.mensagens_chat.append({"role": "user", "content": prompt_usuario})
-                    with st.chat_message("user"):
-                        st.markdown(prompt_usuario)
+                with st.chat_message("assistant"):
+                    with st.spinner("O Engenheiro Virtual Master está processando os parâmetros da obra..."):
+                        resposta_ia = ""
+                        
+                        prompt_sistema = (
+                            "Você é o Engenheiro Virtual Master da plataforma 'Construtech Tubarão'. "
+                            "Seu estilo de comunicação é amigável, direto, usando expressões de canteiro de obras "
+                            "(como 'fala, meu irmão', 'na lata'). Especialista em construção civil brasileira."
+                        )
 
-                    with st.chat_message("assistant"):
-                        with st.spinner("O Engenheiro Virtual Master está processando os parâmetros da obra..."):
-                            resposta_ia = ""
+                        try:
+                            url = f"https://generativelanguage.googleapis.com/v1/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
                             
-                            prompt_sistema = (
-                                "Você é o Engenheiro Virtual Master da plataforma 'Construtech Tubarão'. "
-                                "Seu estilo de comunicação é amigável, direto, usando expressões de canteiro de obras "
-                                "(como 'fala, meu irmão', 'na lata'). Especialista em construção civil brasileira."
-                            )
-
-                            try:
-                                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-                                
-                                historico_texto = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in st.session_state.mensagens_chat])
-                                conteudo_prompt = f"{prompt_sistema}\n\nHistórico:\n{historico_texto}\n\nResponda à última mensagem:"
-                                
-                                payload = {
-                                    "contents": [{
-                                        "parts": [{"text": conteudo_prompt}]
-                                    }]
-                                }
-                                headers = {'Content-Type': 'application/json'}
-                                
-                                response = requests.post(url, headers=headers, data=json.dumps(payload))
-                                
-                                if response.status_code == 200:
-                                    res_json = response.json()
-                                    try:
-                                        resposta_ia = res_json['candidates'][0]['content']['parts'][0]['text']
-                                    except (KeyError, IndexError):
-                                        resposta_ia = "⚠️ Opa, meu irmão! A resposta veio em um formato inesperado."
-                                else:
-                                    resposta_ia = f"⚠️ Opa, meu irmão! Erro na API (Código {response.status_code}): {response.text}"
-                                    
-                            except Exception as e:
-                                resposta_ia = f"⚠️ Opa, meu irmão! Erro de conexão com a IA: {str(e)}"
+                            historico_texto = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in st.session_state.mensagens_chat])
+                            conteudo_prompt = f"{prompt_sistema}\n\nHistórico:\n{historico_texto}\n\nResponda à última mensagem:"
                             
-                            st.markdown(resposta_ia)
-                            st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
-                    
-                    st.rerun()
+                            payload = {
+                                "contents": [{
+                                    "parts": [{"text": conteudo_prompt}]
+                                }]
+                            }
+                            headers = {'Content-Type': 'application/json'}
+                            
+                            response = requests.post(url, headers=headers, data=json.dumps(payload))
+                            
+                            if response.status_code == 200:
+                                res_json = response.json()
+                                try:
+                                    resposta_ia = res_json['candidates'][0]['content']['parts'][0]['text']
+                                except (KeyError, IndexError):
+                                    resposta_ia = "⚠️ Opa, meu irmão! A resposta veio em um formato inesperado."
+                            else:
+                                resposta_ia = f"⚠️ Opa, meu irmão! Erro na API (Código {response.status_code}): {response.text}"
+                                
+                        except Exception as e:
+                            resposta_ia = f"⚠️ Opa, meu irmão! Erro de conexão com a IA: {str(e)}"
+                        
+                        st.markdown(resposta_ia)
+                        st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
+                
+                if not ignorar_limite:
+                    contador_usos[modulo] += 1
+                    salvar_cookie_estado()
+                
+                st.rerun()
 
-    executar_com_controle_amostra("Simulação de Engenheiro Virtual Master", conteudo_ia)
+    gerenciar_limite_modulo(modulo, conteudo_ia)
 
 # ==========================================
-# 10. RODAPÉ DA APLICAÇÃO
+# 11. RODAPÉ DA APLICAÇÃO
 # ==========================================
 st.markdown("---")
 st.markdown(
