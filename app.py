@@ -228,7 +228,8 @@ st.markdown("---")
 def verificar_e_consumir_acesso():
     """Verifica se o usuário já estourou o limite.
 
-    Se não, consome 1 acesso e retorna True. Se sim, bloqueia.
+    Se ultrapassou 3 usos, retorna False para bloquear e mostrar o pagamento.
+    Senão, incrementa o contador e permite o uso.
     """
     if st.session_state.liberado_pago:
         return True
@@ -243,13 +244,11 @@ def verificar_e_consumir_acesso():
 # ==========================================
 # 8. BLOQUEIO GLOBAL OU EXIBIÇÃO DO MÓDULO
 # ==========================================
-# Se o limite estourou e não pagou, bloqueia TUDO (qualquer tela que tentar abrir)
 if (
     not st.session_state.liberado_pago
     and st.session_state.contador_acessos_geral >= 3
 ):
     renderizar_box_pagamento_global()
-
 else:
     # ------------------------------------------
     # MÓDULOS DO SISTEMA
@@ -279,16 +278,17 @@ else:
             "Calcular Viabilidade e Venda", type="primary", key="btn_bdi"
         ):
             if verificar_e_consumir_acesso():
-                preco_venda = custo_base * (1 + bdi_taxa / 100)
-                lucro_estimado = preco_venda - custo_base
-                st.success("Viabilidade calculada com sucesso!")
+                st.session_state["executou_calculo"] = True
+            else:
+                st.rerun()
 
-                col_m1, col_m2 = st.columns(2)
-                col_m1.metric("Preço Final de Venda", f"R$ {preco_venda:,.2f}")
-                col_m2.metric(
-                    "Lucro Bruto Estimado", f"R$ {lucro_estimado:,.2f}"
-                )
-            st.rerun()
+        if st.session_state.get("executou_calculo", False):
+            preco_venda = custo_base * (1 + bdi_taxa / 100)
+            lucro_estimado = preco_venda - custo_base
+            st.success("Viabilidade calculada com sucesso!")
+            col_m1, col_m2 = st.columns(2)
+            col_m1.metric("Preço Final de Venda", f"R$ {preco_venda:,.2f}")
+            col_m2.metric("Lucro Bruto Estimado", f"R$ {lucro_estimado:,.2f}")
 
     elif modulo == "🧱 Alvenaria Completa (Blocos, Cimento e Areia)":
         st.subheader("🧱 Dimensionamento e Soma de Insumos de Alvenaria")
@@ -338,38 +338,42 @@ else:
             key="btn_calc_alv",
         ):
             if verificar_e_consumir_acesso():
-                if "9x19x19" in tipo_material or "Baiano" in tipo_material:
-                    qtd_blocos_m2 = 25
-                    vol_arg = 0.018
-                elif "14x19x19" in tipo_material:
-                    qtd_blocos_m2 = 25
-                    vol_arg = 0.025
-                elif "Concreto 14x19x39" in tipo_material:
-                    qtd_blocos_m2 = 12.5
-                    vol_arg = 0.020
-                else:
-                    qtd_blocos_m2 = 90
-                    vol_arg = 0.040
+                st.session_state["calc_alv_ok"] = True
+            else:
+                st.rerun()
 
-                total_blocos = area_paredes * qtd_blocos_m2 * 1.05
-                total_arg = area_paredes * vol_arg * 1.05
-                sacos_c = total_arg * 7.5
-                m3_a = total_arg * 1.05
+        if st.session_state.get("calc_alv_ok", False):
+            if "9x19x19" in tipo_material or "Baiano" in tipo_material:
+                qtd_blocos_m2 = 25
+                vol_arg = 0.018
+            elif "14x19x19" in tipo_material:
+                qtd_blocos_m2 = 25
+                vol_arg = 0.025
+            elif "Concreto 14x19x39" in tipo_material:
+                qtd_blocos_m2 = 12.5
+                vol_arg = 0.020
+            else:
+                qtd_blocos_m2 = 90
+                vol_arg = 0.040
 
-                custo_bl = total_blocos * preco_unidade
-                custo_ci = sacos_c * preco_cimento
-                custo_ar = m3_a * preco_m3_areia
-                custo_tot = custo_bl + custo_ci + custo_ar
+            total_blocos = area_paredes * qtd_blocos_m2 * 1.05
+            total_arg = area_paredes * vol_arg * 1.05
+            sacos_c = total_arg * 7.5
+            m3_a = total_arg * 1.05
 
-                st.success("Soma de alvenaria concluída com sucesso!")
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Blocos/Tijolos Totais", f"{int(total_blocos)} un")
-                c2.metric("Sacos de Cimento", f"{sacos_c:.1f} sc")
-                c3.metric("Areia Média", f"{m3_a:.2f} m³")
-                st.info(
-                    f"💰 **Soma do Custo Total da Alvenaria:** `R$ {custo_tot:,.2f}`"
-                )
-            st.rerun()
+            custo_bl = total_blocos * preco_unidade
+            custo_ci = sacos_c * preco_cimento
+            custo_ar = m3_a * preco_m3_areia
+            custo_tot = custo_bl + custo_ci + custo_ar
+
+            st.success("Soma de alvenaria concluída com sucesso!")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Blocos/Tijolos Totais", f"{int(total_blocos)} un")
+            c2.metric("Sacos de Cimento", f"{sacos_c:.1f} sc")
+            c3.metric("Areia Média", f"{m3_a:.2f} m³")
+            st.info(
+                f"💰 **Soma do Custo Total da Alvenaria:** `R$ {custo_tot:,.2f}`"
+            )
 
     elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
         st.subheader("🏠 Dimensionamento, Variedade e Ferro da Laje")
@@ -409,20 +413,24 @@ else:
             key="btn_calc_laje",
         ):
             if verificar_e_consumir_acesso():
-                ml_vigotas = area_laje * 1.35
-                qtd_blocos = (
-                    area_laje * 8.3
-                    if "Cerâmica" in tipo_enchimento
-                    else area_laje * 2.5
-                )
-                vol_concreto_m3 = area_laje * 0.070 * 1.07
+                st.session_state["calc_laje_ok"] = True
+            else:
+                st.rerun()
 
-                st.success("Soma de materiais da laje realizada!")
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Vigotas Pré-moldadas", f"{ml_vigotas:.1f} m")
-                c2.metric("Blocos / Lajotas", f"{int(qtd_blocos)} un")
-                c3.metric("Concreto (Capa)", f"{vol_concreto_m3:.2f} m³")
-            st.rerun()
+        if st.session_state.get("calc_laje_ok", False):
+            ml_vigotas = area_laje * 1.35
+            qtd_blocos = (
+                area_laje * 8.3
+                if "Cerâmica" in tipo_enchimento
+                else area_laje * 2.5
+            )
+            vol_concreto_m3 = area_laje * 0.070 * 1.07
+
+            st.success("Soma de materiais da laje realizada!")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Vigotas Pré-moldadas", f"{ml_vigotas:.1f} m")
+            c2.metric("Blocos / Lajotas", f"{int(qtd_blocos)} un")
+            c3.metric("Concreto (Capa)", f"{vol_concreto_m3:.2f} m³")
 
     elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
         st.subheader(
@@ -459,20 +467,23 @@ else:
             key="btn_calc_conc",
         ):
             if verificar_e_consumir_acesso():
-                volume_real = (area_concreto * (espessura_cm / 100.0)) * 1.07
-                sc_cif = volume_real * 7.5
-                areia_m3 = volume_real * 0.55
-                brita_m3 = volume_real * 0.75
+                st.session_state["calc_conc_ok"] = True
+            else:
+                st.rerun()
 
-                st.success("Cálculo de concreto finalizado!")
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Volume Total com Perda", f"{volume_real:.2f} m³")
-                c2.metric("Sacos de Cimento", f"{sc_cif:.1f} sacos")
-                c3.metric(
-                    "Areia / Brita",
-                    f"{areia_m3:.2f} m³ / {brita_m3:.2f} m³",
-                )
-            st.rerun()
+        if st.session_state.get("calc_conc_ok", False):
+            volume_real = (area_concreto * (espessura_cm / 100.0)) * 1.07
+            sc_cif = volume_real * 7.5
+            areia_m3 = volume_real * 0.55
+            brita_m3 = volume_real * 0.75
+
+            st.success("Cálculo de concreto finalizado!")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Volume Total com Perda", f"{volume_real:.2f} m³")
+            c2.metric("Sacos de Cimento", f"{sc_cif:.1f} sacos")
+            c3.metric(
+                "Areia / Brita", f"{areia_m3:.2f} m³ / {brita_m3:.2f} m³"
+            )
 
     elif modulo == "⚙️ Projeto de Aço, Custo e Auditoria de Armadura":
         st.subheader("⚙️ Projeto Geral de Aço e Auditoria")
@@ -489,13 +500,17 @@ else:
             "Gerar Auditoria de Aço", type="primary", key="btn_calc_aco_geral"
         ):
             if verificar_e_consumir_acesso():
-                peso_tot = area_obra * 14.0
-                custo_tot_aco = peso_tot * preco_aco_kg
-                st.success("Auditoria gerada!")
-                c1, c2 = st.columns(2)
-                c1.metric("Peso Estimado de Aço", f"{peso_tot:.1f} kg")
-                c2.metric("Custo Total do Aço", f"R$ {custo_tot_aco:,.2f}")
-            st.rerun()
+                st.session_state["calc_aco_ok"] = True
+            else:
+                st.rerun()
+
+        if st.session_state.get("calc_aco_ok", False):
+            peso_tot = area_obra * 14.0
+            custo_tot_aco = peso_tot * preco_aco_kg
+            st.success("Auditoria gerada!")
+            c1, c2 = st.columns(2)
+            c1.metric("Peso Estimado de Aço", f"{peso_tot:.1f} kg")
+            c2.metric("Custo Total do Aço", f"R$ {custo_tot_aco:,.2f}")
 
     elif modulo == "🏗️ Estrutural, Vigas, Bitolas e Aços":
         st.subheader("🏗️ Dimensionamento de Vigas, Colunas e Bitolas de Ferro")
@@ -530,15 +545,19 @@ else:
             key="btn_calc_vigas",
         ):
             if verificar_e_consumir_acesso():
-                kg_por_viga = vao_viga * 8.5 * qtd_pecas
-                estribos_un = int((vao_viga / 0.12) * qtd_pecas)
+                st.session_state["calc_viga_ok"] = True
+            else:
+                st.rerun()
 
-                st.success("Dimensionamento de vigas concluído!")
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Ferro Principal", tipo_bitola_principal)
-                c2.metric("Peso Total", f"{kg_por_viga:.1f} kg")
-                c3.metric("Estribos", f"{estribos_un} un")
-            st.rerun()
+        if st.session_state.get("calc_viga_ok", False):
+            kg_por_viga = vao_viga * 8.5 * qtd_pecas
+            estribos_un = int((vao_viga / 0.12) * qtd_pecas)
+
+            st.success("Dimensionamento de vigas concluído!")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Ferro Principal", tipo_bitola_principal)
+            c2.metric("Peso Total", f"{kg_por_viga:.1f} kg")
+            c3.metric("Estribos", f"{estribos_un} un")
 
     elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
         st.subheader(
@@ -575,17 +594,17 @@ else:
             key="btn_calc_hid",
         ):
             if verificar_e_consumir_acesso():
-                cano_esgoto_100 = (qtd_banheiros * 6.0) + distancia_fossa
-                cano_agua_25 = (qtd_banheiros * 8.0) + (qtd_cozinhas * 6.0)
+                st.session_state["calc_hid_ok"] = True
+            else:
+                st.rerun()
 
-                st.success("Soma hidráulica gerada com sucesso!")
-                st.write(
-                    f"- Tubo Esgoto 100mm: **{cano_esgoto_100:.1f} metros**"
-                )
-                st.write(
-                    f"- Tubo Água Fria 25mm: **{cano_agua_25:.1f} metros**"
-                )
-            st.rerun()
+        if st.session_state.get("calc_hid_ok", False):
+            cano_esgoto_100 = (qtd_banheiros * 6.0) + distancia_fossa
+            cano_agua_25 = (qtd_banheiros * 8.0) + (qtd_cozinhas * 6.0)
+
+            st.success("Soma hidráulica gerada com sucesso!")
+            st.write(f"- Tubo Esgoto 100mm: **{cano_esgoto_100:.1f} metros**")
+            st.write(f"- Tubo Água Fria 25mm: **{cano_agua_25:.1f} metros**")
 
     elif modulo == "🎨 Revestimento, Acabamento e Pintura":
         st.subheader("🎨 Cálculo de Reboco, Pintura e Pisos/Porcelanatos")
@@ -621,18 +640,20 @@ else:
             key="btn_calc_rev",
         ):
             if verificar_e_consumir_acesso():
-                sacos_arg_reboco = (area_rev * 0.025) * 18
-                litros_tinta = (area_rev * demãos_tinta) / 10
-                piso_com_perda = area_piso * (1 + taxa_perda_piso / 100.0)
+                st.session_state["calc_rev_ok"] = True
+            else:
+                st.rerun()
 
-                st.success("Cálculo de acabamento concluído!")
-                c1, c2, c3 = st.columns(3)
-                c1.metric(
-                    "Argamassa Reboco", f"{sacos_arg_reboco:.1f} sc (20kg)"
-                )
-                c2.metric("Tinta Estimada", f"{litros_tinta:.1f} litros")
-                c3.metric("Piso c/ Recorte", f"{piso_com_perda:.1f} m²")
-            st.rerun()
+        if st.session_state.get("calc_rev_ok", False):
+            sacos_arg_reboco = (area_rev * 0.025) * 18
+            litros_tinta = (area_rev * demãos_tinta) / 10
+            piso_com_perda = area_piso * (1 + taxa_perda_piso / 100.0)
+
+            st.success("Cálculo de acabamento concluído!")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Argamassa Reboco", f"{sacos_arg_reboco:.1f} sc (20kg)")
+            c2.metric("Tinta Estimada", f"{litros_tinta:.1f} litros")
+            c3.metric("Piso c/ Recorte", f"{piso_com_perda:.1f} m²")
 
     elif modulo == "🏠 Cobertura e Telhado":
         st.subheader("🏠 Quantitativo de Telhas, Caibros e Ripas")
@@ -664,26 +685,30 @@ else:
             key="btn_calc_telh",
         ):
             if verificar_e_consumir_acesso():
-                area_real = proj_chao * (1 + (inclinacao / 100.0) * 0.3)
-                if "Colonial" in tipo_telha:
-                    qtd_telhas = area_real * 16
-                elif "Fibrocimento" in tipo_telha:
-                    qtd_telhas = area_real * 0.55
-                else:
-                    qtd_telhas = area_real * 1.1
+                st.session_state["calc_telh_ok"] = True
+            else:
+                st.rerun()
 
-                ml_caibros = area_real * 3.5
-                ml_ripas = area_real * 7.0
+        if st.session_state.get("calc_telh_ok", False):
+            area_real = proj_chao * (1 + (inclinacao / 100.0) * 0.3)
+            if "Colonial" in tipo_telha:
+                qtd_telhas = area_real * 16
+            elif "Fibrocimento" in tipo_telha:
+                qtd_telhas = area_real * 0.55
+            else:
+                qtd_telhas = area_real * 1.1
 
-                st.success("Dimensionamento de telhado finalizado!")
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Área Real do Telhado", f"{area_real:.1f} m²")
-                c2.metric("Quantidade de Telhas", f"{int(qtd_telhas)} un")
-                c3.metric(
-                    "Madeiramento (Caibros/Ripas)",
-                    f"{ml_caibros:.0f}m / {ml_ripas:.0f}m",
-                )
-            st.rerun()
+            ml_caibros = area_real * 3.5
+            ml_ripas = area_real * 7.0
+
+            st.success("Dimensionamento de telhado finalizado!")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Área Real do Telhado", f"{area_real:.1f} m²")
+            c2.metric("Quantidade de Telhas", f"{int(qtd_telhas)} un")
+            c3.metric(
+                "Madeiramento (Caibros/Ripas)",
+                f"{ml_caibros:.0f}m / {ml_ripas:.0f}m",
+            )
 
     elif modulo == "⚡ Elétrica Básica Residencial":
         st.subheader("⚡ Estimativa de Eletrodutos, Caixas e Fios")
@@ -712,15 +737,19 @@ else:
             key="btn_calc_eletrica",
         ):
             if verificar_e_consumir_acesso():
-                m_conduite = area_casa * 2.2
-                caixas_4x2 = qtd_comodos * 5
-                caixas_4x4 = qtd_comodos * 1
+                st.session_state["calc_eletrica_ok"] = True
+            else:
+                st.rerun()
 
-                st.success("Orçamento elétrico calculado com sucesso!")
-                c1, c2 = st.columns(2)
-                c1.metric("Eletrodutos Corrugados", f"{m_conduite:.1f} metros")
-                c2.metric("Caixas 4x2 / 4x4", f"{caixas_4x2} / {caixas_4x4} un")
-            st.rerun()
+        if st.session_state.get("calc_eletrica_ok", False):
+            m_conduite = area_casa * 2.2
+            caixas_4x2 = qtd_comodos * 5
+            caixas_4x4 = qtd_comodos * 1
+
+            st.success("Orçamento elétrico calculado com sucesso!")
+            c1, c2 = st.columns(2)
+            c1.metric("Eletrodutos Corrugados", f"{m_conduite:.1f} metros")
+            c2.metric("Caixas 4x2 / 4x4", f"{caixas_4x2} / {caixas_4x4} un")
 
     elif modulo == "📅 Cronograma Físico-Financeiro (Curva S)":
         st.subheader("📅 Distribuição de Custos por Etapas da Obra")
@@ -734,23 +763,25 @@ else:
             "Gerar Cronograma de Gastos", type="primary", key="btn_calc_curvas"
         ):
             if verificar_e_consumir_acesso():
-                fase_fundacao = custo_total_obra * 0.15
-                fase_estrutura = custo_total_obra * 0.25
-                fase_alvenaria = custo_total_obra * 0.15
-                fase_cobertura = custo_total_obra * 0.10
-                fase_instalacoes = custo_total_obra * 0.15
-                fase_acabamento = custo_total_obra * 0.20
+                st.session_state["calc_curvas_ok"] = True
+            else:
+                st.rerun()
 
-                st.success("Curva S e Cronograma gerados!")
-                st.write(f"- **1. Fundação:** R$ {fase_fundacao:,.2f} (15%)")
-                st.write(f"- **2. Estrutura:** R$ {fase_estrutura:,.2f} (25%)")
-                st.write(f"- **3. Alvenaria:** R$ {fase_alvenaria:,.2f} (15%)")
-                st.write(f"- **4. Cobertura:** R$ {fase_cobertura:,.2f} (10%)")
-                st.write(
-                    f"- **5. Instalações:** R$ {fase_instalacoes:,.2f} (15%)"
-                )
-                st.write(f"- **6. Acabamentos:** R$ {fase_acabamento:,.2f} (20%)")
-            st.rerun()
+        if st.session_state.get("calc_curvas_ok", False):
+            fase_fundacao = custo_total_obra * 0.15
+            fase_estrutura = custo_total_obra * 0.25
+            fase_alvenaria = custo_total_obra * 0.15
+            fase_cobertura = custo_total_obra * 0.10
+            fase_instalacoes = custo_total_obra * 0.15
+            fase_acabamento = custo_total_obra * 0.20
+
+            st.success("Curva S e Cronograma gerados!")
+            st.write(f"- **1. Fundação:** R$ {fase_fundacao:,.2f} (15%)")
+            st.write(f"- **2. Estrutura:** R$ {fase_estrutura:,.2f} (25%)")
+            st.write(f"- **3. Alvenaria:** R$ {fase_alvenaria:,.2f} (15%)")
+            st.write(f"- **4. Cobertura:** R$ {fase_cobertura:,.2f} (10%)")
+            st.write(f"- **5. Instalações:** R$ {fase_instalacoes:,.2f} (15%)")
+            st.write(f"- **6. Acabamentos:** R$ {fase_acabamento:,.2f} (20%)")
 
     elif modulo == "📝 Gerador de Contrato de Empreitada":
         st.subheader("📝 Emissor de Minuta de Contrato de Prestação de Serviços")
@@ -781,17 +812,19 @@ else:
             "Gerar Contrato Completo", type="primary", key="btn_calc_contrato"
         ):
             if verificar_e_consumir_acesso():
-                st.success("Contrato gerado com sucesso!")
-                minuta_texto = f"""CONTRATO PARTICULAR DE PRESTAÇÃO DE SERVIÇOS
+                st.session_state["calc_contrato_ok"] = True
+            else:
+                st.rerun()
+
+        if st.session_state.get("calc_contrato_ok", False):
+            st.success("Contrato gerado com sucesso!")
+            minuta_texto = f"""CONTRATO PARTICULAR DE PRESTAÇÃO DE SERVIÇOS
 CONSTRUTECH TUBARÃO
 CONTRATANTE: {contratante}
 VALOR: R$ {valor_contrato:,.2f}
 PRAZO: {prazo_meses} meses
 """
-                st.text_area(
-                    "Visualização Contrato:", value=minuta_texto, height=200
-                )
-            st.rerun()
+            st.text_area("Visualização Contrato:", value=minuta_texto, height=200)
 
     elif modulo == "💼 Faturamento e CNPJ":
         st.subheader("Orçamento Comercial e Proposta de Serviços")
@@ -800,10 +833,12 @@ PRAZO: {prazo_meses} meses
         )
         if st.button("Emitir Proposta", type="primary", key="btn_calc_fat"):
             if verificar_e_consumir_acesso():
-                st.success(
-                    f"Proposta emitida no valor de R$ {valor_bruto:,.2f}!"
-                )
-            st.rerun()
+                st.session_state["calc_fat_ok"] = True
+            else:
+                st.rerun()
+
+        if st.session_state.get("calc_fat_ok", False):
+            st.success(f"Proposta emitida no valor de R$ {valor_bruto:,.2f}!")
 
     # ------------------------------------------
     # ASSISTENTE IA INTEGRADO COM O GEMINI
@@ -828,7 +863,6 @@ PRAZO: {prazo_meses} meses
             "Ex: 'Quantos blocos gastam no muro?' ou 'Qual o traço de"
             " concreto ideal?'"
         ):
-            # Valida e consome acesso ao enviar mensagem
             if verificar_e_consumir_acesso():
                 if not GEMINI_API_KEY:
                     st.error(
@@ -885,9 +919,9 @@ PRAZO: {prazo_meses} meses
                                 if response.status_code == 200:
                                     res_json = response.json()
                                     try:
-                                        resposta_ia = res_json["candidates"][0][
-                                            "content"
-                                        ]["parts"][0]["text"]
+                                         resposta_ia = res_json["candidates"][0][
+                                             "content"
+                                         ]["parts"][0]["text"]
                                     except (KeyError, IndexError):
                                         resposta_ia = (
                                             "⚠️ Opa, meu irmão! A resposta"
@@ -910,7 +944,6 @@ PRAZO: {prazo_meses} meses
                             st.session_state.mensagens_chat.append(
                                 {"role": "assistant", "content": resposta_ia}
                             )
-
             st.rerun()
 
 # ==========================================
