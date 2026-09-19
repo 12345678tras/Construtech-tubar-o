@@ -72,7 +72,7 @@ if "mensagens_chat" not in st.session_state:
         {
             "role": "assistant",
             "content": (
-                "Fala, meu irmão! Sou o engenheiro virtual da Construtech Tubarão. "
+                "Fala, meu irmão! Sou o Engenheiro Virtual Master da Construtech Tubarão. "
                 "Você tem **4 consultas gratuitas** para testar. "
                 "Pode mandar sua dúvida do seu jeito, que eu te ajudo na obra!"
             ),
@@ -150,7 +150,7 @@ lista_modulos = [
     "📅 Cronograma Físico-Financeiro (Curva S)",
     "📝 Gerador de Contrato de Empreitada",
     "💼 Faturamento e CNPJ",
-    "🤖 Assistente IA (Engenheiro Virtual Inteligente)",
+    "🤖 Simulação de Engenheiro Virtual Master",
 ]
 
 modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
@@ -534,14 +534,14 @@ elif modulo == "💼 Faturamento e CNPJ":
 # ==========================================
 # 9. ASSISTENTE IA INTEGRADO COM O GEMINI
 # ==========================================
-elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
+elif modulo == "🤖 Simulação de Engenheiro Virtual Master":
     def conteudo_ia():
-        st.subheader("🤖 Engenheiro Virtual Inteligente (Powered by Gemini) - Construtech Tubarão")
+        st.subheader("🤖 Simulação de Engenheiro Virtual Master (Powered by Gemini) - Construtech Tubarão")
 
         consultas_restantes = max(0, 4 - st.session_state.contador_ia_gratis)
         if not st.session_state.liberado_pago:
             if consultas_restantes > 0:
-                st.info(f"🎁 Você tem **{consultas_restantes} consulta(s) gratuita(s)** restantes com o Engenheiro Virtual.")
+                st.info(f"🎁 Você tem **{consultas_restantes} consulta(s) gratuita(s)** restantes com o Engenheiro Virtual Master.")
             else:
                 st.warning("⚠️ Suas 4 consultas gratuitas da IA acabaram.")
 
@@ -567,17 +567,18 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                         st.markdown(prompt_usuario)
 
                     with st.chat_message("assistant"):
-                        with st.spinner("O Engenheiro Virtual está calculando os parâmetros da obra..."):
+                        with st.spinner("O Engenheiro Virtual Master está processando os parâmetros da obra..."):
                             resposta_ia = ""
                             
                             prompt_sistema = (
-                                "Você é o Engenheiro Virtual Inteligente da plataforma 'Construtech Tubarão'. "
+                                "Você é o Engenheiro Virtual Master da plataforma 'Construtech Tubarão'. "
                                 "Seu estilo de comunicação é amigável, direto, usando expressões de canteiro de obras "
                                 "(como 'fala, meu irmão', 'na lata'). Especialista em construção civil brasileira."
                             )
 
                             try:
-                                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+                                # Alterado para usar o modelo correto e atualizado gemini-2.5-flash
+                                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
                                 
                                 historico_texto = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in st.session_state.mensagens_chat])
                                 conteudo_prompt = f"{prompt_sistema}\n\nHistórico:\n{historico_texto}\n\nResponda à última mensagem:"
@@ -608,7 +609,7 @@ elif modulo == "🤖 Assistente IA (Engenheiro Virtual Inteligente)":
                     
                     st.rerun()
 
-    executar_com_controle_amostra("Assistente IA (Engenheiro Virtual Inteligente)", conteudo_ia)
+    executar_com_controle_amostra("Simulação de Engenheiro Virtual Master", conteudo_ia)
 
 # ==========================================
 # 10. RODAPÉ DA APLICAÇÃO
