@@ -73,9 +73,9 @@ if "mensagens_chat" not in st.session_state:
             "role": "assistant",
             "content": (
                 "Fala, meu irmão! Sou o Engenheiro Virtual Master da Construtech"
-                " Tubarão. Você tem um total de **3 consultas/acessos gratuitos**"
-                " na plataforma inteira para testar. Pode mandar sua dúvida ou"
-                " usar os módulos!"
+                " Tubarão. Você tem exatamente **3 consultas/acessos"
+                " gratuitos** na plataforma inteira para testar. Pode mandar"
+                " sua dúvida ou usar os módulos!"
             ),
         }
     ]
@@ -176,7 +176,7 @@ lista_modulos = [
 
 modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
 
-# Exibição de contador de testes na barra lateral para transparência
+# Exibição correta dos 3 testes gratuitos restantes na barra lateral
 if not st.session_state.liberado_pago:
     restantes = max(0, 3 - st.session_state.contador_acessos_geral)
     st.sidebar.markdown("---")
@@ -223,20 +223,21 @@ st.markdown("---")
 
 
 # ==========================================
-# FUNÇÃO DE CONTROLE DE ACESSO GLOBAL
+# FUNÇÃO DE CONTROLE DE ACESSO GLOBAL (EXatamente 3 usos)
 # ==========================================
 def verificar_e_consumir_acesso():
-    """Verifica se o usuário já estourou o limite.
+    """Permite usar exatamente 3 vezes.
 
-    Se ultrapassou 3 usos, retorna False para bloquear e mostrar o pagamento.
-    Senão, incrementa o contador e permite o uso.
+    No 4º clique/tentativa, bloqueia e exige pagamento.
     """
     if st.session_state.liberado_pago:
         return True
 
+    # Se já atingiu 3 usos, bloqueia na 4ª tentativa
     if st.session_state.contador_acessos_geral >= 3:
         return False
 
+    # Incrementa o uso atual
     st.session_state.contador_acessos_geral += 1
     return True
 
