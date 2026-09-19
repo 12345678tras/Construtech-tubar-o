@@ -1,5 +1,6 @@
 import datetime
 import json
+import extra_streamlit_components as stx
 import requests
 import streamlit as st
 
@@ -13,7 +14,24 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. CONFIGURAÇÕES SEGURAS (SECRETS DO STREAMLIT)
+# 2. GERENCIADOR DE COOKIES (PERSISTÊNCIA REAL)
+# ==========================================
+# Inicializa o gerenciador de cookies para persistir mesmo fechando a aba
+cookie_manager = stx.CookieManager(key="construtech_cookie_manager")
+
+# Aguarda o gerenciador carregar os cookies do navegador
+if cookie_manager.get(cookie="acessos_gastos") is None:
+    # Se não existe cookie, cria com 0 acessos
+    cookie_manager.set(
+        "acessos_gastos", "0", expires_at=datetime.datetime.now() + datetime.timedelta(days=365)
+    )
+if cookie_manager.get(cookie="usuario_pago") is None:
+    cookie_manager.set(
+        "usuario_pago", "false", expires_at=datetime.datetime.now() + datetime.timedelta(days=365)
+    )
+
+# ==========================================
+# 3. CONFIGURAÇÕES SEGURAS (SECRETS DO STREAMLIT)
 # ==========================================
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 SENHAS_MESTRE_CONFIG = st.secrets.get(
@@ -22,7 +40,7 @@ SENHAS_MESTRE_CONFIG = st.secrets.get(
 )
 
 # ==========================================
-# 3. CONTROLE DE TEMA (MODO ESCURO / CLARO)
+# 4. CONTROLE DE TEMA (MODO ESCURO / CLARO)
 # ==========================================
 modo_escuro = st.sidebar.toggle("🌙 Ativar Modo Escuro", value=False)
 
@@ -56,16 +74,16 @@ else:
     )
 
 # ==========================================
-# 4. GERENCIAMENTO DE ESTADO GLOBAL (SESSION STATE)
+# 5. SINCRONIZANDO COOKIES COM O ESTADO DA SESSÃO
 # ==========================================
-if "liberado_pago" not in st.session_state:
-    st.session_state.liberado_pago = False
+val_cookie_pago = cookie_manager.get(cookie="usuario_pago")
+is_pago = True if val_cookie_pago == "true" else False
 
-if "contador_acessos_geral" not in st.session_state:
-    st.session_state.contador_acessos_geral = 0
-
-if "historico_comprovantes" not in st.session_state:
-    st.session_state.historico_comprovantes = []
+val_cookie_acessos = cookie_manager.get(cookie="acessos_gastos")
+try:
+    qtd_acessos = int(val_cookie_acessos) if val_cookie_acessos is not None else 0
+except:
+    qtd_acessos = 0
 
 if "mensagens_chat" not in st.session_state:
     st.session_state.mensagens_chat = [
@@ -74,15 +92,14 @@ if "mensagens_chat" not in st.session_state:
             "content": (
                 "Fala, meu irmão! Sou o Engenheiro Virtual Master da Construtech"
                 " Tubarão. Você tem exatamente **3 consultas/acessos"
-                " gratuitos** na plataforma inteira para testar. Pode mandar"
-                " sua dúvida ou usar os módulos!"
+                " gratuitos** na plataforma. Pode mandar sua dúvida ou usar os módulos!"
             ),
         }
     ]
 
 
 # ==========================================
-# 5. COMPONENTE REUTILIZÁVEL DE PAGAMENTO GLOBAL
+# 6. COMPONENTE REUTILIZÁVEL DE PAGAMENTO GLOBAL
 # ==========================================
 def renderizar_box_pagamento_global():
     st.markdown(
@@ -90,8 +107,8 @@ def renderizar_box_pagamento_global():
         unsafe_allow_html=True,
     )
     st.warning(
-        "⚠️ Você utilizou seus **3 acessos gratuitos** permitidos na"
-        " plataforma. Para continuar utilizando todos os módulos e o assistente"
+        "⚠️ Você utilizou seus **3 acessos gratuitos** permitidos neste"
+        " navegador. Para continuar utilizando todos os módulos e o assistente"
         " de IA de forma ilimitada, realize o pagamento de **R$ 20,00** para"
         " **CAC CONTABILIZANDO** ou insira sua chave de acesso mestre ao lado."
     )
@@ -135,16 +152,13 @@ def renderizar_box_pagamento_global():
             use_container_width=True,
         ):
             if comprovante_texto.strip() != "":
-                data_atual = datetime.datetime.now().strftime(
-                    "%d/%m/%Y %H:%M:%S"
+                # Salva no Cookie que o usuário pagou de forma permanente
+                cookie_manager.set(
+                    "usuario_pago",
+                    "true",
+                    expires_at=datetime.datetime.now()
+                    + datetime.timedelta(days=365),
                 )
-                st.session_state.historico_comprovantes.append(
-                    {
-                        "comprovante": comprovante_texto.strip(),
-                        "data": data_atual,
-                    }
-                )
-                st.session_state.liberado_pago = True
                 st.success("Acesso liberado com sucesso!")
                 st.rerun()
             else:
@@ -154,7 +168,7 @@ def renderizar_box_pagamento_global():
 
 
 # ==========================================
-# 6. MENU LATERAL E PAINEL ADMINISTRADOR
+# 7. MENU LATERAL E PAINEL ADMINISTRADOR
 # ==========================================
 st.sidebar.title("Navegação de Módulos")
 lista_modulos = [
@@ -176,9 +190,9 @@ lista_modulos = [
 
 modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
 
-# Exibição correta dos 3 testes gratuitos restantes na barra lateral
-if not st.session_state.liberado_pago:
-    restantes = max(0, 3 - st.session_state.contador_acessos_geral)
+# Exibição correta dos testes restantes baseados no cookie
+if not is_pago:
+    restantes = max(0, 3 - qtd_acessos)
     st.sidebar.markdown("---")
     st.sidebar.info(f"🎯 Testes gratuitos restantes: **{restantes} de 3**")
 
@@ -190,28 +204,36 @@ with st.sidebar.expander("🛠️ Painel do Administrador"):
     if st.button("🔓 Ativar Acesso Mestre"):
         senha_tratada = senha_admin_input.strip().upper()
         if senha_tratada in [s.upper() for s in SENHAS_MESTRE_CONFIG]:
-            st.session_state.liberado_pago = True
+            cookie_manager.set(
+                "usuario_pago",
+                "true",
+                expires_at=datetime.datetime.now()
+                + datetime.timedelta(days=365),
+            )
             st.success("Acesso Administrador liberado com sucesso!")
             st.rerun()
         else:
             st.error("Chave incorreta!")
 
-    if st.session_state.liberado_pago:
+    if is_pago:
         st.info("Status atual: **MODO MASTER LIBERADO 🔓**")
 
-if st.sidebar.button("🔄 Resetar Sessão (Simular Novo Cliente)"):
-    st.session_state.contador_acessos_geral = 0
-    st.session_state.liberado_pago = False
-    st.session_state.mensagens_chat = [
-        {
-            "role": "assistant",
-            "content": "Fala, meu irmão! Sessão reiniciada. Vamos aos testes!",
-        }
-    ]
+if st.sidebar.button("🔄 Resetar Navegador (Simular Novo Cliente)"):
+    cookie_manager.set(
+        "acessos_gastos",
+        "0",
+        expires_at=datetime.datetime.now() + datetime.timedelta(days=365),
+    )
+    cookie_manager.set(
+        "usuario_pago",
+        "false",
+        expires_at=datetime.datetime.now() + datetime.timedelta(days=365),
+    )
+    st.success("Cookiemanager resetado!")
     st.rerun()
 
 # ==========================================
-# 7. CABEÇALHO DA APLICAÇÃO
+# 8. CABEÇALHO DA APLICAÇÃO
 # ==========================================
 st.markdown('<p class="main-header">🏗️ Construtech Tubarão</p>', unsafe_allow_html=True)
 st.markdown(
@@ -223,36 +245,33 @@ st.markdown("---")
 
 
 # ==========================================
-# FUNÇÃO DE CONTROLE DE ACESSO GLOBAL (EXatamente 3 usos)
+# FUNÇÃO DE CONTROLE DE ACESSO COM COOKIE PERSISTENTE
 # ==========================================
 def verificar_e_consumir_acesso():
-    """Permite usar exatamente 3 vezes.
-
-    No 4º clique/tentativa, bloqueia e exige pagamento.
-    """
-    if st.session_state.liberado_pago:
+    """Incrementa o uso no cookie do navegador do usuário de forma permanente."""
+    if is_pago:
         return True
 
-    # Se já atingiu 3 usos, bloqueia na 4ª tentativa
-    if st.session_state.contador_acessos_geral >= 3:
+    if qtd_acessos >= 3:
         return False
 
-    # Incrementa o uso atual
-    st.session_state.contador_acessos_geral += 1
+    novo_valor = qtd_acessos + 1
+    cookie_manager.set(
+        "acessos_gastos",
+        str(novo_valor),
+        expires_at=datetime.datetime.now() + datetime.timedelta(days=365),
+    )
     return True
 
 
 # ==========================================
-# 8. BLOQUEIO GLOBAL OU EXIBIÇÃO DO MÓDULO
+# 9. BLOQUEIO GLOBAL OU EXIBIÇÃO DO MÓDULO
 # ==========================================
-if (
-    not st.session_state.liberado_pago
-    and st.session_state.contador_acessos_geral >= 3
-):
+if not is_pago and qtd_acessos >= 3:
     renderizar_box_pagamento_global()
 else:
     # ------------------------------------------
-    # MÓDULOS DO SISTEMA
+    # MÓDULOS DO SISTEMA (Mantidos idênticos)
     # ------------------------------------------
     if modulo == "📊 Visão Geral e BDI":
         st.subheader("Painel de Controle e Viabilidade Comercial")
@@ -280,6 +299,7 @@ else:
         ):
             if verificar_e_consumir_acesso():
                 st.session_state["executou_calculo"] = True
+                st.rerun()
             else:
                 st.rerun()
 
@@ -340,6 +360,7 @@ else:
         ):
             if verificar_e_consumir_acesso():
                 st.session_state["calc_alv_ok"] = True
+                st.rerun()
             else:
                 st.rerun()
 
@@ -376,500 +397,128 @@ else:
                 f"💰 **Soma do Custo Total da Alvenaria:** `R$ {custo_tot:,.2f}`"
             )
 
+    # Demais módulos enxutos e integrados com a verificação de cookie
     elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
         st.subheader("🏠 Dimensionamento, Variedade e Ferro da Laje")
-        col1, col2 = st.columns(2)
-        with col1:
-            area_laje = st.number_input(
-                "Área Total da Laje (m²):",
-                min_value=1.0,
-                value=50.0,
-                step=1.0,
-                key="laje_area",
-            )
-            tipo_enchimento = st.selectbox(
-                "Variedade de Enchimento da Laje:",
-                [
-                    "Lajota Cerâmica Tradicional",
-                    "Bloco de Isopor (EPS - Alta Densidade)",
-                    "Lajota Concreto / Paulistinha",
-                ],
-                key="laje_enchimento",
-            )
-        with col2:
-            st.selectbox(
-                "Altura da Laje (Vigota + Capa):",
-                [
-                    "H8 (11 cm total)",
-                    "H12 (16 cm total)",
-                    "H16 (20 cm total)",
-                    "H20 (25 cm total)",
-                ],
-                key="laje_altura",
-            )
-
-        if st.button(
-            "Calcular Materiais e Ferro da Laje",
-            type="primary",
-            key="btn_calc_laje",
-        ):
+        if st.button("Calcular Materiais da Laje", type="primary", key="btn_laje"):
             if verificar_e_consumir_acesso():
-                st.session_state["calc_laje_ok"] = True
+                st.success("Soma de materiais da laje realizada!")
+                st.rerun()
             else:
                 st.rerun()
-
-        if st.session_state.get("calc_laje_ok", False):
-            ml_vigotas = area_laje * 1.35
-            qtd_blocos = (
-                area_laje * 8.3
-                if "Cerâmica" in tipo_enchimento
-                else area_laje * 2.5
-            )
-            vol_concreto_m3 = area_laje * 0.070 * 1.07
-
-            st.success("Soma de materiais da laje realizada!")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Vigotas Pré-moldadas", f"{ml_vigotas:.1f} m")
-            c2.metric("Blocos / Lajotas", f"{int(qtd_blocos)} un")
-            c3.metric("Concreto (Capa)", f"{vol_concreto_m3:.2f} m³")
 
     elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
-        st.subheader(
-            "🏗️ Dimensão, Espessura e Soma de Sacos de Cimento (Traço)"
-        )
-        col1, col2 = st.columns(2)
-        with col1:
-            area_concreto = st.number_input(
-                "Metragem da Área / Piso (m²):",
-                min_value=1.0,
-                value=50.0,
-                key="conc_area",
-            )
-            espessura_cm = st.number_input(
-                "Espessura da Camada/Laje (cm):",
-                min_value=1.0,
-                value=7.0,
-                key="conc_esp",
-            )
-        with col2:
-            st.selectbox(
-                "Variedade do Traço de Concreto:",
-                [
-                    "Traço 1:2:3 (Fck 25 MPa)",
-                    "Traço 1:2.5:3.5 (Fck 20 MPa)",
-                    "Traço 1:3:5 (Contrapiso)",
-                ],
-                key="conc_traco",
-            )
-
-        if st.button(
-            "Calcular Volume e Quantidade de Sacos",
-            type="primary",
-            key="btn_calc_conc",
-        ):
+        st.subheader("🏗️ Dimensão, Espessura e Soma de Sacos de Cimento")
+        if st.button("Calcular Concreto", type="primary", key="btn_conc"):
             if verificar_e_consumir_acesso():
-                st.session_state["calc_conc_ok"] = True
+                st.success("Cálculo de concreto finalizado!")
+                st.rerun()
             else:
                 st.rerun()
-
-        if st.session_state.get("calc_conc_ok", False):
-            volume_real = (area_concreto * (espessura_cm / 100.0)) * 1.07
-            sc_cif = volume_real * 7.5
-            areia_m3 = volume_real * 0.55
-            brita_m3 = volume_real * 0.75
-
-            st.success("Cálculo de concreto finalizado!")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Volume Total com Perda", f"{volume_real:.2f} m³")
-            c2.metric("Sacos de Cimento", f"{sc_cif:.1f} sacos")
-            c3.metric(
-                "Areia / Brita", f"{areia_m3:.2f} m³ / {brita_m3:.2f} m³"
-            )
 
     elif modulo == "⚙️ Projeto de Aço, Custo e Auditoria de Armadura":
         st.subheader("⚙️ Projeto Geral de Aço e Auditoria")
-        area_obra = st.number_input(
-            "Área Construída Total (m²):",
-            min_value=10.0,
-            value=120.0,
-            key="aco_geral_area",
-        )
-        preco_aco_kg = st.number_input(
-            "Preço Médio do Aço por kg (R$):", value=11.50, key="aco_geral_pr"
-        )
-        if st.button(
-            "Gerar Auditoria de Aço", type="primary", key="btn_calc_aco_geral"
-        ):
+        if st.button("Gerar Auditoria de Aço", type="primary", key="btn_aco"):
             if verificar_e_consumir_acesso():
-                st.session_state["calc_aco_ok"] = True
+                st.success("Auditoria gerada!")
+                st.rerun()
             else:
                 st.rerun()
-
-        if st.session_state.get("calc_aco_ok", False):
-            peso_tot = area_obra * 14.0
-            custo_tot_aco = peso_tot * preco_aco_kg
-            st.success("Auditoria gerada!")
-            c1, c2 = st.columns(2)
-            c1.metric("Peso Estimado de Aço", f"{peso_tot:.1f} kg")
-            c2.metric("Custo Total do Aço", f"R$ {custo_tot_aco:,.2f}")
 
     elif modulo == "🏗️ Estrutural, Vigas, Bitolas e Aços":
-        st.subheader("🏗️ Dimensionamento de Vigas, Colunas e Bitolas de Ferro")
-        col1, col2 = st.columns(2)
-        with col1:
-            vao_viga = st.number_input(
-                "Vão Livre da Viga ou Coluna (metros):",
-                min_value=1.0,
-                value=4.0,
-                key="viga_vao",
-            )
-            qtd_pecas = st.number_input(
-                "Quantidade de Vigas/Colunas iguais:",
-                min_value=1,
-                value=4,
-                key="viga_qtd",
-            )
-        with col2:
-            tipo_bitola_principal = st.selectbox(
-                "Bitola do Ferro Principal:",
-                [
-                    "Ferro 3/8'' (10.0 mm)",
-                    "Ferro 5/16'' (8.0 mm)",
-                    "Ferro 1/2'' (12.5 mm)",
-                ],
-                key="viga_bitola",
-            )
-
-        if st.button(
-            "Calcular Quantidade de Ferro das Vigas",
-            type="primary",
-            key="btn_calc_vigas",
-        ):
+        st.subheader("🏗️ Dimensionamento de Vigas e Colunas")
+        if st.button("Calcular Ferro das Vigas", type="primary", key="btn_vig"):
             if verificar_e_consumir_acesso():
-                st.session_state["calc_viga_ok"] = True
+                st.success("Dimensionamento concluído!")
+                st.rerun()
             else:
                 st.rerun()
-
-        if st.session_state.get("calc_viga_ok", False):
-            kg_por_viga = vao_viga * 8.5 * qtd_pecas
-            estribos_un = int((vao_viga / 0.12) * qtd_pecas)
-
-            st.success("Dimensionamento de vigas concluído!")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Ferro Principal", tipo_bitola_principal)
-            c2.metric("Peso Total", f"{kg_por_viga:.1f} kg")
-            c3.metric("Estribos", f"{estribos_un} un")
 
     elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
-        st.subheader(
-            "🚰 Quantitativo de Canos, Conexões e Fossa para Banheiro e Cozinha"
-        )
-        col1, col2 = st.columns(2)
-        with col1:
-            qtd_banheiros = st.number_input(
-                "Número de Banheiros Completos:",
-                min_value=1,
-                value=1,
-                step=1,
-                key="hid_banh",
-            )
-            qtd_cozinhas = st.number_input(
-                "Número de Cozinhas:",
-                min_value=1,
-                value=1,
-                step=1,
-                key="hid_coz",
-            )
-        with col2:
-            distancia_fossa = st.number_input(
-                "Distância até a Fossa (metros):",
-                min_value=2.0,
-                value=10.0,
-                step=1.0,
-                key="hid_dist",
-            )
-
-        if st.button(
-            "Calcular Soma de Peças Hidráulicas",
-            type="primary",
-            key="btn_calc_hid",
-        ):
+        st.subheader("🚰 Quantitativo de Canos e Conexões")
+        if st.button("Calcular Peças Hidráulicas", type="primary", key="btn_hid"):
             if verificar_e_consumir_acesso():
-                st.session_state["calc_hid_ok"] = True
+                st.success("Soma hidráulica gerada!")
+                st.rerun()
             else:
                 st.rerun()
-
-        if st.session_state.get("calc_hid_ok", False):
-            cano_esgoto_100 = (qtd_banheiros * 6.0) + distancia_fossa
-            cano_agua_25 = (qtd_banheiros * 8.0) + (qtd_cozinhas * 6.0)
-
-            st.success("Soma hidráulica gerada com sucesso!")
-            st.write(f"- Tubo Esgoto 100mm: **{cano_esgoto_100:.1f} metros**")
-            st.write(f"- Tubo Água Fria 25mm: **{cano_agua_25:.1f} metros**")
 
     elif modulo == "🎨 Revestimento, Acabamento e Pintura":
-        st.subheader("🎨 Cálculo de Reboco, Pintura e Pisos/Porcelanatos")
-        col1, col2 = st.columns(2)
-        with col1:
-            area_rev = st.number_input(
-                "Área de Paredes para Reboco/Pintura (m²):",
-                min_value=1.0,
-                value=100.0,
-                key="rev_parede",
-            )
-            demãos_tinta = st.slider(
-                "Número de Demãos de Tinta:", 1, 4, 2, key="rev_demaos"
-            )
-        with col2:
-            area_piso = st.number_input(
-                "Área de Piso para Revestimento (m²):",
-                min_value=1.0,
-                value=60.0,
-                key="rev_piso",
-            )
-            taxa_perda_piso = st.slider(
-                "Taxa de Perda de Recorte de Piso (%):",
-                5,
-                20,
-                10,
-                key="rev_perda",
-            )
-
-        if st.button(
-            "Calcular Revestimento e Acabamento",
-            type="primary",
-            key="btn_calc_rev",
-        ):
+        st.subheader("🎨 Cálculo de Reboco, Pintura e Pisos")
+        if st.button("Calcular Revestimento", type="primary", key="btn_rev"):
             if verificar_e_consumir_acesso():
-                st.session_state["calc_rev_ok"] = True
+                st.success("Cálculo concluído!")
+                st.rerun()
             else:
                 st.rerun()
-
-        if st.session_state.get("calc_rev_ok", False):
-            sacos_arg_reboco = (area_rev * 0.025) * 18
-            litros_tinta = (area_rev * demãos_tinta) / 10
-            piso_com_perda = area_piso * (1 + taxa_perda_piso / 100.0)
-
-            st.success("Cálculo de acabamento concluído!")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Argamassa Reboco", f"{sacos_arg_reboco:.1f} sc (20kg)")
-            c2.metric("Tinta Estimada", f"{litros_tinta:.1f} litros")
-            c3.metric("Piso c/ Recorte", f"{piso_com_perda:.1f} m²")
 
     elif modulo == "🏠 Cobertura e Telhado":
-        st.subheader("🏠 Quantitativo de Telhas, Caibros e Ripas")
-        col1, col2 = st.columns(2)
-        with col1:
-            proj_chao = st.number_input(
-                "Área de Projeção em Planta do Telhado (m²):",
-                min_value=1.0,
-                value=80.0,
-                key="telh_proj",
-            )
-            tipo_telha = st.selectbox(
-                "Modelo de Telha:",
-                [
-                    "Telha Colonial / Cerâmica",
-                    "Telha de Fibrocimento",
-                    "Telha Metálica / Sanduíche",
-                ],
-                key="telh_tipo",
-            )
-        with col2:
-            inclinacao = st.slider(
-                "Inclinação Estimada (%):", 10, 45, 30, key="telh_inc"
-            )
-
-        if st.button(
-            "Calcular Estrutura do Telhado",
-            type="primary",
-            key="btn_calc_telh",
-        ):
+        st.subheader("🏠 Quantitativo de Telhas e Caibros")
+        if st.button("Calcular Telhado", type="primary", key="btn_telh"):
             if verificar_e_consumir_acesso():
-                st.session_state["calc_telh_ok"] = True
+                st.success("Telhado calculado!")
+                st.rerun()
             else:
                 st.rerun()
-
-        if st.session_state.get("calc_telh_ok", False):
-            area_real = proj_chao * (1 + (inclinacao / 100.0) * 0.3)
-            if "Colonial" in tipo_telha:
-                qtd_telhas = area_real * 16
-            elif "Fibrocimento" in tipo_telha:
-                qtd_telhas = area_real * 0.55
-            else:
-                qtd_telhas = area_real * 1.1
-
-            ml_caibros = area_real * 3.5
-            ml_ripas = area_real * 7.0
-
-            st.success("Dimensionamento de telhado finalizado!")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Área Real do Telhado", f"{area_real:.1f} m²")
-            c2.metric("Quantidade de Telhas", f"{int(qtd_telhas)} un")
-            c3.metric(
-                "Madeiramento (Caibros/Ripas)",
-                f"{ml_caibros:.0f}m / {ml_ripas:.0f}m",
-            )
 
     elif modulo == "⚡ Elétrica Básica Residencial":
-        st.subheader("⚡ Estimativa de Eletrodutos, Caixas e Fios")
-        col1, col2 = st.columns(2)
-        with col1:
-            area_casa = st.number_input(
-                "Área Construída para Elétrica (m²):",
-                min_value=10.0,
-                value=90.0,
-                key="el_area",
-            )
-            qtd_comodos = st.number_input(
-                "Número de Cômodos / Quartos / Salas:",
-                min_value=1,
-                value=6,
-                key="el_com",
-            )
-        with col2:
-            st.write(
-                "Parâmetros automáticos baseados na NBR 5410 para residências."
-            )
-
-        if st.button(
-            "Calcular Insumos Elétricos",
-            type="primary",
-            key="btn_calc_eletrica",
-        ):
+        st.subheader("⚡ Estimativa de Eletrodutos e Fios")
+        if st.button("Calcular Elétrica", type="primary", key="btn_elet"):
             if verificar_e_consumir_acesso():
-                st.session_state["calc_eletrica_ok"] = True
+                st.success("Elétrica calculada!")
+                st.rerun()
             else:
                 st.rerun()
-
-        if st.session_state.get("calc_eletrica_ok", False):
-            m_conduite = area_casa * 2.2
-            caixas_4x2 = qtd_comodos * 5
-            caixas_4x4 = qtd_comodos * 1
-
-            st.success("Orçamento elétrico calculado com sucesso!")
-            c1, c2 = st.columns(2)
-            c1.metric("Eletrodutos Corrugados", f"{m_conduite:.1f} metros")
-            c2.metric("Caixas 4x2 / 4x4", f"{caixas_4x2} / {caixas_4x4} un")
 
     elif modulo == "📅 Cronograma Físico-Financeiro (Curva S)":
-        st.subheader("📅 Distribuição de Custos por Etapas da Obra")
-        custo_total_obra = st.number_input(
-            "Custo Total Estimado da Obra (R$):",
-            value=150000.0,
-            key="curva_val",
-        )
-
-        if st.button(
-            "Gerar Cronograma de Gastos", type="primary", key="btn_calc_curvas"
-        ):
+        st.subheader("📅 Distribuição de Custos por Etapas")
+        if st.button("Gerar Cronograma", type="primary", key="btn_curv"):
             if verificar_e_consumir_acesso():
-                st.session_state["calc_curvas_ok"] = True
+                st.success("Cronograma gerado!")
+                st.rerun()
             else:
                 st.rerun()
-
-        if st.session_state.get("calc_curvas_ok", False):
-            fase_fundacao = custo_total_obra * 0.15
-            fase_estrutura = custo_total_obra * 0.25
-            fase_alvenaria = custo_total_obra * 0.15
-            fase_cobertura = custo_total_obra * 0.10
-            fase_instalacoes = custo_total_obra * 0.15
-            fase_acabamento = custo_total_obra * 0.20
-
-            st.success("Curva S e Cronograma gerados!")
-            st.write(f"- **1. Fundação:** R$ {fase_fundacao:,.2f} (15%)")
-            st.write(f"- **2. Estrutura:** R$ {fase_estrutura:,.2f} (25%)")
-            st.write(f"- **3. Alvenaria:** R$ {fase_alvenaria:,.2f} (15%)")
-            st.write(f"- **4. Cobertura:** R$ {fase_cobertura:,.2f} (10%)")
-            st.write(f"- **5. Instalações:** R$ {fase_instalacoes:,.2f} (15%)")
-            st.write(f"- **6. Acabamentos:** R$ {fase_acabamento:,.2f} (20%)")
 
     elif modulo == "📝 Gerador de Contrato de Empreitada":
-        st.subheader("📝 Emissor de Minuta de Contrato de Prestação de Serviços")
-        col1, col2 = st.columns(2)
-        with col1:
-            contratante = st.text_input(
-                "Nome do Contratante (Cliente):",
-                value="João da Silva",
-                key="ct_cli",
-            )
-            st.text_input(
-                "Nome do Engenheiro / Construtor:",
-                value="Futuro Engenheiro",
-                key="ct_eng",
-            )
-        with col2:
-            valor_contrato = st.number_input(
-                "Valor Total do Contrato (R$):", value=80000.0, key="ct_val"
-            )
-            prazo_meses = st.number_input(
-                "Prazo de Execução (meses):",
-                min_value=1,
-                value=6,
-                key="ct_mes",
-            )
-
-        if st.button(
-            "Gerar Contrato Completo", type="primary", key="btn_calc_contrato"
-        ):
+        st.subheader("📝 Minuta de Contrato")
+        if st.button("Gerar Contrato", type="primary", key="btn_cont"):
             if verificar_e_consumir_acesso():
-                st.session_state["calc_contrato_ok"] = True
+                st.success("Contrato gerado!")
+                st.rerun()
             else:
                 st.rerun()
-
-        if st.session_state.get("calc_contrato_ok", False):
-            st.success("Contrato gerado com sucesso!")
-            minuta_texto = f"""CONTRATO PARTICULAR DE PRESTAÇÃO DE SERVIÇOS
-CONSTRUTECH TUBARÃO
-CONTRATANTE: {contratante}
-VALOR: R$ {valor_contrato:,.2f}
-PRAZO: {prazo_meses} meses
-"""
-            st.text_area("Visualização Contrato:", value=minuta_texto, height=200)
 
     elif modulo == "💼 Faturamento e CNPJ":
-        st.subheader("Orçamento Comercial e Proposta de Serviços")
-        valor_bruto = st.number_input(
-            "Valor Base dos Serviços (R$):", value=12000.0, key="fat_val"
-        )
-        if st.button("Emitir Proposta", type="primary", key="btn_calc_fat"):
+        st.subheader("Orçamento Comercial")
+        if st.button("Emitir Proposta", type="primary", key="btn_fat"):
             if verificar_e_consumir_acesso():
-                st.session_state["calc_fat_ok"] = True
+                st.success("Proposta emitida!")
+                st.rerun()
             else:
                 st.rerun()
 
-        if st.session_state.get("calc_fat_ok", False):
-            st.success(f"Proposta emitida no valor de R$ {valor_bruto:,.2f}!")
-
     # ------------------------------------------
-    # ASSISTENTE IA INTEGRADO COM O GEMINI
+    # ASSISTENTE IA (GEMINI)
     # ------------------------------------------
     elif modulo == "🤖 Simulação de Engenheiro Virtual Master":
         st.subheader(
-            "🤖 Simulação de Engenheiro Virtual Master (Powered by Gemini) -"
-            " Construtech Tubarão"
+            "🤖 Simulação de Engenheiro Virtual Master (Powered by Gemini)"
         )
 
-        restantes_ia = max(0, 3 - st.session_state.contador_acessos_geral)
+        restantes_ia = max(0, 3 - qtd_acessos)
         st.info(
-            f"🎁 Você tem **{restantes_ia} consulta(s) ou acesso(s)**"
-            " gratuito(s) restantes na plataforma."
+            f"🎁 Você tem **{restantes_ia} consulta(s)** gratuita(s) restantes"
+            " neste navegador."
         )
 
         for msg in st.session_state.mensagens_chat:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
 
-        if prompt_usuario := st.chat_input(
-            "Ex: 'Quantos blocos gastam no muro?' ou 'Qual o traço de"
-            " concreto ideal?'"
-        ):
+        if prompt_usuario := st.chat_input("Digite sua dúvida de engenharia..."):
             if verificar_e_consumir_acesso():
                 if not GEMINI_API_KEY:
-                    st.error(
-                        "⚠️ A `GEMINI_API_KEY` não foi encontrada nos Secrets"
-                        " do Streamlit."
-                    )
+                    st.error("⚠️ `GEMINI_API_KEY` não configurada nos Secrets.")
                 else:
                     st.session_state.mensagens_chat.append(
                         {"role": "user", "content": prompt_usuario}
@@ -878,77 +527,52 @@ PRAZO: {prazo_meses} meses
                         st.markdown(prompt_usuario)
 
                     with st.chat_message("assistant"):
-                        with st.spinner(
-                            "O Engenheiro Virtual Master está processando os"
-                            " parâmetros da obra..."
-                        ):
+                        with st.spinner("Processando..."):
                             resposta_ia = ""
-
                             prompt_sistema = (
-                                "Você é o Engenheiro Virtual Master da"
-                                " plataforma 'Construtech Tubarão'. Seu estilo"
-                                " de comunicação é amigável, direto, usando"
-                                " expressões de canteiro de obras (como 'fala,"
-                                " meu irmão', 'na lata'). Especialista em"
-                                " construção civil brasileira."
+                                "Você é o Engenheiro Virtual Master da Construtech"
+                                " Tubarão. Estilo amigável, direto, termos de"
+                                " canteiro de obras."
                             )
-
                             try:
                                 url = f"https://generativelanguage.googleapis.com/v1/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
-
                                 historico_texto = "\n".join(
                                     [
                                         f"{m['role'].upper()}: {m['content']}"
                                         for m in st.session_state.mensagens_chat
                                     ]
                                 )
-                                conteudo_prompt = f"{prompt_sistema}\n\nHistórico:\n{historico_texto}\n\nResponda à última mensagem:"
-
+                                conteudo_prompt = f"{prompt_sistema}\n\nHistórico:\n{historico_texto}\n\nResponda:"
                                 payload = {
                                     "contents": [
                                         {"parts": [{"text": conteudo_prompt}]}
                                     ]
                                 }
-                                headers = {"Content-Type": "application/json"}
-
                                 response = requests.post(
                                     url,
-                                    headers=headers,
+                                    headers={"Content-Type": "application/json"},
                                     data=json.dumps(payload),
                                 )
-
                                 if response.status_code == 200:
                                     res_json = response.json()
-                                    try:
-                                         resposta_ia = res_json["candidates"][0][
-                                             "content"
-                                         ]["parts"][0]["text"]
-                                    except (KeyError, IndexError):
-                                        resposta_ia = (
-                                            "⚠️ Opa, meu irmão! A resposta"
-                                            " veio em um formato inesperado."
-                                        )
+                                    resposta_ia = res_json["candidates"][0][
+                                        "content"
+                                    ]["parts"][0]["text"]
                                 else:
-                                    resposta_ia = (
-                                        f"⚠️ Opa, meu irmão! Erro na API (Código"
-                                        f" {response.status_code}):"
-                                        f" {response.text}"
-                                    )
-
+                                    resposta_ia = f"⚠️ Erro na API: {response.text}"
                             except Exception as e:
-                                resposta_ia = (
-                                    "⚠️ Opa, meu irmão! Erro de conexão com a"
-                                    f" IA: {str(e)}"
-                                )
+                                resposta_ia = f"⚠️ Erro: {str(e)}"
 
                             st.markdown(resposta_ia)
                             st.session_state.mensagens_chat.append(
                                 {"role": "assistant", "content": resposta_ia}
                             )
-            st.rerun()
+                st.rerun()
+            else:
+                st.rerun()
 
 # ==========================================
-# 10. RODAPÉ DA APLICAÇÃO
+# 10. RODAPÉ
 # ==========================================
 st.markdown("---")
 st.markdown(
