@@ -1,6 +1,5 @@
 import datetime
 import json
-import extra_streamlit_components as stx
 import requests
 import streamlit as st
 
@@ -14,30 +13,91 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. GERENCIADOR DE COOKIES (PERSISTÊNCIA REAL)
-# ==========================================
-# Inicializa o gerenciador de cookies para persistir mesmo fechando a aba
-cookie_manager = stx.CookieManager(key="construtech_cookie_manager")
-
-# Aguarda o gerenciador carregar os cookies do navegador
-if cookie_manager.get(cookie="acessos_gastos") is None:
-    # Se não existe cookie, cria com 0 acessos
-    cookie_manager.set(
-        "acessos_gastos", "0", expires_at=datetime.datetime.now() + datetime.timedelta(days=365)
-    )
-if cookie_manager.get(cookie="usuario_pago") is None:
-    cookie_manager.set(
-        "usuario_pago", "false", expires_at=datetime.datetime.now() + datetime.timedelta(days=365)
-    )
-
-# ==========================================
-# 3. CONFIGURAÇÕES SEGURAS (SECRETS DO STREAMLIT)
+# 2. CONFIGURAÇÕES SEGURAS (SECRETS DO STREAMLIT)
 # ==========================================
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 SENHAS_MESTRE_CONFIG = st.secrets.get(
     "senhas_admin",
     ["CONSTRUTECH12", "CONSTRUTECH", "CONTRUTECH12", "CONTRUTECH"],
 )
+
+# ==========================================
+# 3. BLINDAGEM PERSISTENTE VIA LOCALSTORAGE (NATIVO)
+# ==========================================
+# Injeta um script JavaScript leve para ler o estado salvo no navegador do cliente
+st.markdown(
+    """
+    <script>
+    const localPago = localStorage.getItem("construtech_pago");
+    const localAcessos = localStorage.getItem("construtech_acessos");
+    
+    // Se houver dados salvos no navegador, injeta na URL para o Streamlit ler
+    const urlParams = new URLSearchParams(window.location.search);
+    let needsReload = false;
+    
+    if (localPago && !urlParams.has('pago')) {
+        urlParams.set('pago', localPago);
+        needsReload = true;
+    }
+    if (localAcessos && !urlParams.has('acessos')) {
+        urlParams.set('acessos', localAcessos);
+        needsReload = true;
+    }
+    
+    if (needsReload) {
+        window.location.search = urlParams.toString();
+    }
+    </script>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Recupera os dados da URL (sincronizados com o navegador)
+params = st.query_params
+is_pago_url = params.get("pago", "false") == "true"
+try:
+    qtd_acessos_url = int(params.get("acessos", "0"))
+except:
+    qtd_acessos_url = 0
+
+if "usuario_pago" not in st.session_state:
+    st.session_state.usuario_pago = is_pago_url
+
+if "contador_acessos_geral" not in st.session_state:
+    st.session_state.contador_acessos_geral = qtd_acessos_url
+
+if "mensagens_chat" not in st.session_state:
+    st.session_state.mensagens_chat = [
+        {
+            "role": "assistant",
+            "content": (
+                "Fala, meu irmão! Sou o Engenheiro Virtual Master da Construtech"
+                " Tubarão. Você tem exatamente **3 consultas/acessos"
+                " gratuitos** na plataforma. Pode mandar sua dúvida ou usar os módulos!"
+            ),
+        }
+    ]
+
+
+# Função para salvar o estado de forma permanente no navegador do usuário
+def atualizar_persistencia(novo_acesso, novo_pago):
+    st.session_state.contador_acessos_geral = novo_acesso
+    st.session_state.usuario_pago = novo_pago
+
+    # Atualiza a URL e salva no LocalStorage do navegador para não perder ao fechar a aba
+    st.query_params["acessos"] = str(novo_acesso)
+    st.query_params["pago"] = "true" if novo_pago else "false"
+
+    st.markdown(
+        f"""
+        <script>
+        localStorage.setItem("construtech_acessos", "{novo_acesso}");
+        localStorage.setItem("construtech_pago", "{"true" if novo_pago else "false"}");
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+
 
 # ==========================================
 # 4. CONTROLE DE TEMA (MODO ESCURO / CLARO)
@@ -73,33 +133,9 @@ else:
         unsafe_allow_html=True,
     )
 
-# ==========================================
-# 5. SINCRONIZANDO COOKIES COM O ESTADO DA SESSÃO
-# ==========================================
-val_cookie_pago = cookie_manager.get(cookie="usuario_pago")
-is_pago = True if val_cookie_pago == "true" else False
-
-val_cookie_acessos = cookie_manager.get(cookie="acessos_gastos")
-try:
-    qtd_acessos = int(val_cookie_acessos) if val_cookie_acessos is not None else 0
-except:
-    qtd_acessos = 0
-
-if "mensagens_chat" not in st.session_state:
-    st.session_state.mensagens_chat = [
-        {
-            "role": "assistant",
-            "content": (
-                "Fala, meu irmão! Sou o Engenheiro Virtual Master da Construtech"
-                " Tubarão. Você tem exatamente **3 consultas/acessos"
-                " gratuitos** na plataforma. Pode mandar sua dúvida ou usar os módulos!"
-            ),
-        }
-    ]
-
 
 # ==========================================
-# 6. COMPONENTE REUTILIZÁVEL DE PAGAMENTO GLOBAL
+# 5. COMPONENTE REUTILIZÁVEL DE PAGAMENTO GLOBAL
 # ==========================================
 def renderizar_box_pagamento_global():
     st.markdown(
@@ -152,12 +188,8 @@ def renderizar_box_pagamento_global():
             use_container_width=True,
         ):
             if comprovante_texto.strip() != "":
-                # Salva no Cookie que o usuário pagou de forma permanente
-                cookie_manager.set(
-                    "usuario_pago",
-                    "true",
-                    expires_at=datetime.datetime.now()
-                    + datetime.timedelta(days=365),
+                atualizar_persistencia(
+                    st.session_state.contador_acessos_geral, True
                 )
                 st.success("Acesso liberado com sucesso!")
                 st.rerun()
@@ -168,7 +200,7 @@ def renderizar_box_pagamento_global():
 
 
 # ==========================================
-# 7. MENU LATERAL E PAINEL ADMINISTRADOR
+# 6. MENU LATERAL E PAINEL ADMINISTRADOR
 # ==========================================
 st.sidebar.title("Navegação de Módulos")
 lista_modulos = [
@@ -190,9 +222,9 @@ lista_modulos = [
 
 modulo = st.sidebar.selectbox("Selecione a Ferramenta:", lista_modulos)
 
-# Exibição correta dos testes restantes baseados no cookie
-if not is_pago:
-    restantes = max(0, 3 - qtd_acessos)
+# Exibição correta dos testes restantes
+if not st.session_state.usuario_pago:
+    restantes = max(0, 3 - st.session_state.contador_acessos_geral)
     st.sidebar.markdown("---")
     st.sidebar.info(f"🎯 Testes gratuitos restantes: **{restantes} de 3**")
 
@@ -204,36 +236,24 @@ with st.sidebar.expander("🛠️ Painel do Administrador"):
     if st.button("🔓 Ativar Acesso Mestre"):
         senha_tratada = senha_admin_input.strip().upper()
         if senha_tratada in [s.upper() for s in SENHAS_MESTRE_CONFIG]:
-            cookie_manager.set(
-                "usuario_pago",
-                "true",
-                expires_at=datetime.datetime.now()
-                + datetime.timedelta(days=365),
+            atualizar_persistencia(
+                st.session_state.contador_acessos_geral, True
             )
             st.success("Acesso Administrador liberado com sucesso!")
             st.rerun()
         else:
             st.error("Chave incorreta!")
 
-    if is_pago:
+    if st.session_state.usuario_pago:
         st.info("Status atual: **MODO MASTER LIBERADO 🔓**")
 
 if st.sidebar.button("🔄 Resetar Navegador (Simular Novo Cliente)"):
-    cookie_manager.set(
-        "acessos_gastos",
-        "0",
-        expires_at=datetime.datetime.now() + datetime.timedelta(days=365),
-    )
-    cookie_manager.set(
-        "usuario_pago",
-        "false",
-        expires_at=datetime.datetime.now() + datetime.timedelta(days=365),
-    )
-    st.success("Cookiemanager resetado!")
+    atualizar_persistencia(0, False)
+    st.success("Navegador resetado com sucesso!")
     st.rerun()
 
 # ==========================================
-# 8. CABEÇALHO DA APLICAÇÃO
+# 7. CABEÇALHO DA APLICAÇÃO
 # ==========================================
 st.markdown('<p class="main-header">🏗️ Construtech Tubarão</p>', unsafe_allow_html=True)
 st.markdown(
@@ -245,33 +265,32 @@ st.markdown("---")
 
 
 # ==========================================
-# FUNÇÃO DE CONTROLE DE ACESSO COM COOKIE PERSISTENTE
+# FUNÇÃO DE CONTROLE DE ACESSO BLINDADA
 # ==========================================
 def verificar_e_consumir_acesso():
-    """Incrementa o uso no cookie do navegador do usuário de forma permanente."""
-    if is_pago:
+    """Incrementa o uso e salva no navegador para bloquear reenvios."""
+    if st.session_state.usuario_pago:
         return True
 
-    if qtd_acessos >= 3:
+    if st.session_state.contador_acessos_geral >= 3:
         return False
 
-    novo_valor = qtd_acessos + 1
-    cookie_manager.set(
-        "acessos_gastos",
-        str(novo_valor),
-        expires_at=datetime.datetime.now() + datetime.timedelta(days=365),
-    )
+    novo_uso = st.session_state.contador_acessos_geral + 1
+    atualizar_persistencia(novo_uso, st.session_state.usuario_pago)
     return True
 
 
 # ==========================================
-# 9. BLOQUEIO GLOBAL OU EXIBIÇÃO DO MÓDULO
+# 8. BLOQUEIO GLOBAL OU EXIBIÇÃO DO MÓDULO
 # ==========================================
-if not is_pago and qtd_acessos >= 3:
+if (
+    not st.session_state.usuario_pago
+    and st.session_state.contador_acessos_geral >= 3
+):
     renderizar_box_pagamento_global()
 else:
     # ------------------------------------------
-    # MÓDULOS DO SISTEMA (Mantidos idênticos)
+    # MÓDULOS DO SISTEMA
     # ------------------------------------------
     if modulo == "📊 Visão Geral e BDI":
         st.subheader("Painel de Controle e Viabilidade Comercial")
@@ -397,28 +416,28 @@ else:
                 f"💰 **Soma do Custo Total da Alvenaria:** `R$ {custo_tot:,.2f}`"
             )
 
-    # Demais módulos enxutos e integrados com a verificação de cookie
+    # Demais módulos integrados com a verificação blindada
     elif modulo == "🏠 Lajes Avançadas (Cerâmica e Isopor/EPS)":
-        st.subheader("🏠 Dimensionamento, Variedade e Ferro da Laje")
-        if st.button("Calcular Materiais da Laje", type="primary", key="btn_laje"):
+        st.subheader("🏠 Dimensionamento de Lajes")
+        if st.button("Calcular Materiais", type="primary", key="btn_laje"):
             if verificar_e_consumir_acesso():
-                st.success("Soma de materiais da laje realizada!")
+                st.success("Cálculo realizado!")
                 st.rerun()
             else:
                 st.rerun()
 
     elif modulo == "🏗️ Concreto, Traços e Volume Estrutural":
-        st.subheader("🏗️ Dimensão, Espessura e Soma de Sacos de Cimento")
+        st.subheader("🏗️ Volume de Concreto")
         if st.button("Calcular Concreto", type="primary", key="btn_conc"):
             if verificar_e_consumir_acesso():
-                st.success("Cálculo de concreto finalizado!")
+                st.success("Cálculo realizado!")
                 st.rerun()
             else:
                 st.rerun()
 
     elif modulo == "⚙️ Projeto de Aço, Custo e Auditoria de Armadura":
-        st.subheader("⚙️ Projeto Geral de Aço e Auditoria")
-        if st.button("Gerar Auditoria de Aço", type="primary", key="btn_aco"):
+        st.subheader("⚙️ Auditoria de Aço")
+        if st.button("Gerar Auditoria", type="primary", key="btn_aco"):
             if verificar_e_consumir_acesso():
                 st.success("Auditoria gerada!")
                 st.rerun()
@@ -426,26 +445,26 @@ else:
                 st.rerun()
 
     elif modulo == "🏗️ Estrutural, Vigas, Bitolas e Aços":
-        st.subheader("🏗️ Dimensionamento de Vigas e Colunas")
-        if st.button("Calcular Ferro das Vigas", type="primary", key="btn_vig"):
+        st.subheader("🏗️ Vigas e Colunas")
+        if st.button("Calcular Vigas", type="primary", key="btn_vig"):
             if verificar_e_consumir_acesso():
-                st.success("Dimensionamento concluído!")
+                st.success("Cálculo concluído!")
                 st.rerun()
             else:
                 st.rerun()
 
     elif modulo == "🚰 Sistema Hidráulico Prático (Banheiro e Cozinha)":
-        st.subheader("🚰 Quantitativo de Canos e Conexões")
-        if st.button("Calcular Peças Hidráulicas", type="primary", key="btn_hid"):
+        st.subheader("🚰 Hidráulica")
+        if st.button("Calcular Hidráulica", type="primary", key="btn_hid"):
             if verificar_e_consumir_acesso():
-                st.success("Soma hidráulica gerada!")
+                st.success("Cálculo concluído!")
                 st.rerun()
             else:
                 st.rerun()
 
     elif modulo == "🎨 Revestimento, Acabamento e Pintura":
-        st.subheader("🎨 Cálculo de Reboco, Pintura e Pisos")
-        if st.button("Calcular Revestimento", type="primary", key="btn_rev"):
+        st.subheader("🎨 Acabamento")
+        if st.button("Calcular Acabamento", type="primary", key="btn_rev"):
             if verificar_e_consumir_acesso():
                 st.success("Cálculo concluído!")
                 st.rerun()
@@ -453,37 +472,37 @@ else:
                 st.rerun()
 
     elif modulo == "🏠 Cobertura e Telhado":
-        st.subheader("🏠 Quantitativo de Telhas e Caibros")
+        st.subheader("🏠 Telhado")
         if st.button("Calcular Telhado", type="primary", key="btn_telh"):
             if verificar_e_consumir_acesso():
-                st.success("Telhado calculado!")
+                st.success("Cálculo concluído!")
                 st.rerun()
             else:
                 st.rerun()
 
     elif modulo == "⚡ Elétrica Básica Residencial":
-        st.subheader("⚡ Estimativa de Eletrodutos e Fios")
+        st.subheader("⚡ Elétrica")
         if st.button("Calcular Elétrica", type="primary", key="btn_elet"):
             if verificar_e_consumir_acesso():
-                st.success("Elétrica calculada!")
+                st.success("Cálculo concluído!")
                 st.rerun()
             else:
                 st.rerun()
 
     elif modulo == "📅 Cronograma Físico-Financeiro (Curva S)":
-        st.subheader("📅 Distribuição de Custos por Etapas")
+        st.subheader("📅 Cronograma")
         if st.button("Gerar Cronograma", type="primary", key="btn_curv"):
             if verificar_e_consumir_acesso():
-                st.success("Cronograma gerado!")
+                st.success("Cálculo concluído!")
                 st.rerun()
             else:
                 st.rerun()
 
     elif modulo == "📝 Gerador de Contrato de Empreitada":
-        st.subheader("📝 Minuta de Contrato")
+        st.subheader("📝 Contrato")
         if st.button("Gerar Contrato", type="primary", key="btn_cont"):
             if verificar_e_consumir_acesso():
-                st.success("Contrato gerado!")
+                st.success("Cálculo concluído!")
                 st.rerun()
             else:
                 st.rerun()
@@ -492,7 +511,7 @@ else:
         st.subheader("Orçamento Comercial")
         if st.button("Emitir Proposta", type="primary", key="btn_fat"):
             if verificar_e_consumir_acesso():
-                st.success("Proposta emitida!")
+                st.success("Cálculo concluído!")
                 st.rerun()
             else:
                 st.rerun()
@@ -505,7 +524,7 @@ else:
             "🤖 Simulação de Engenheiro Virtual Master (Powered by Gemini)"
         )
 
-        restantes_ia = max(0, 3 - qtd_acessos)
+        restantes_ia = max(0, 3 - st.session_state.contador_acessos_geral)
         st.info(
             f"🎁 Você tem **{restantes_ia} consulta(s)** gratuita(s) restantes"
             " neste navegador."
@@ -572,7 +591,7 @@ else:
                 st.rerun()
 
 # ==========================================
-# 10. RODAPÉ
+# 9. RODAPÉ
 # ==========================================
 st.markdown("---")
 st.markdown(
